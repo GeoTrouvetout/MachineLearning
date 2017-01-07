@@ -26,6 +26,10 @@ import theano.tensor as T
 import lasagne
 
 
+########### FUNCTIONS DEF ################
+"""
+simple copy of the function load_dataset() of the lasagne/example/mnist.py
+"""
 def load_dataset_mnist():
     # We first define a download function, supporting both Python 2 and 3.
     if sys.version_info[0] == 2:
@@ -78,6 +82,10 @@ def load_dataset_mnist():
     # (It doesn't matter how we do this as long as we can read them again.)
     return X_train, y_train, X_val, y_val, X_test, y_test
 
+
+"""
+simple copy of the function iterate_minibatches(...) of the lasagne/examples/mnist.py
+"""
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
     assert len(inputs) == len(targets)
     if shuffle:
@@ -90,8 +98,11 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
                 excerpt = slice(start_idx, start_idx + batchsize)
                 yield inputs[excerpt], targets[excerpt]
 
+############## MAIN ################
+
 def main(num_epochs=500):
-    print("Loading data...")
+    # mnist dataset
+    print("Loading mnist data...")
     X_train, y_train, X_val, y_val, X_test, y_test = load_dataset_mnist()
 
 
