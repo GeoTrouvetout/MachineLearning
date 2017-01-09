@@ -25,6 +25,7 @@ import theano
 import theano.tensor as T
 
 import lasagne
+import nolearn
 
 
 ########### FUNCTIONS DEF ################
@@ -87,39 +88,40 @@ def load_dataset_mnist():
 	return X_train, y_train, X_val, y_val, X_test, y_test
 
 
-def read_model_data(model, filename):
-	"""Unpickles and loads parameters into a Lasagne model."""
-	filename = os.path.join('./', '%s.%s' % (filename, 'params'))
-	with open(filename, 'r') as f:
-		data = pickle.load(f)
-	lasagne.layers.set_all_param_values(model, data)
+# def read_model_data(model, filename):
+# 	"""Unpickles and loads parameters into a Lasagne model."""
+# 	filename = os.path.join('./', '%s.%s' % (filename, 'params'))
+# 	with open(filename, 'r') as f:
+# 		data = pickle.load(f)
+# 	lasagne.layers.set_all_param_values(model, data)
 
 
 def write_model_data(model, filename):
 	"""Pickels the parameters within a Lasagne model."""
 	data = lasagne.layers.get_all_param_values(model)
 	filename = os.path.join('./', filename)
-	filename = '%s.%s' % (filename, 'params')
-	with open(filename, 'w') as f:
-		pickle.dump(data, f)
+	filename = '%s.%s' % (filename, 'npz')
+	np.savez(filename, *lasagne.layers.get_all_param_values(model))
+
+		
 
 def build_cae(input_var=None):
 
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
-	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify )
+	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
 	l_pool1 = lasagne.layers.MaxPool2DLayer(l_conv1, pool_size=(2,2) )
-	l_conv2 = lasagne.layers.Conv2DLayer(l_pool1, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify )
+	l_conv2 = lasagne.layers.Conv2DLayer(l_pool1, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
 	l_pool2 = lasagne.layers.MaxPool2DLayer(l_conv2, pool_size=(2,2) )
-	l_fcenc = lasagne.layers.DenseLayer(l_pool2, num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
-	l_fc = lasagne.layers.DenseLayer(l_fcenc, num_units=256, nonlinearity=lasagne.nonlinearities.rectify)
+	l_fcenc = lasagne.layers.DenseLayer(l_pool2, num_units=512, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform())
+	l_fc = lasagne.layers.DenseLayer(l_fcenc, num_units=256, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform())
 	l_fcdec = lasagne.layers.DenseLayer(l_fc, num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
 	l_reshpfcdec = lasagne.layers.ReshapeLayer( l_fcdec, shape=(-1, 32, 4, 4) )
 	l_upscale1 = lasagne.layers.Upscale2DLayer(l_reshpfcdec, scale_factor=2, mode='repeat')
-	l_deconv1 = lasagne.layers.Deconv2DLayer(l_upscale1, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify )
+	l_deconv1 = lasagne.layers.Deconv2DLayer(l_upscale1, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
 	l_upscale2 = lasagne.layers.Upscale2DLayer(l_deconv1, scale_factor=2, mode='repeat')
-	l_deconv2 = lasagne.layers.Deconv2DLayer(l_upscale2, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify )
+	l_deconv2 = lasagne.layers.Deconv2DLayer(l_upscale2, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
 	l_out = lasagne.layers.FeaturePoolLayer(l_deconv2, 32, pool_function=theano.tensor.max )
-
+	print(lasagne.layers.get_output_shape(l_out))
 	return l_out
 
 
@@ -131,12 +133,12 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
 	if shuffle:
 		indices = np.arange(len(inputs))
 		np.random.shuffle(indices)
-		for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
-			if shuffle:
-				excerpt = indices[start_idx:start_idx + batchsize]
-			else:
-				excerpt = slice(start_idx, start_idx + batchsize)
-				yield inputs[excerpt], targets[excerpt]
+	for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
+		if shuffle:
+			excerpt = indices[start_idx:start_idx + batchsize]
+		else:
+			excerpt = slice(start_idx, start_idx + batchsize)
+		yield inputs[excerpt], targets[excerpt]
 
 ############## MAIN ################
 
@@ -144,6 +146,9 @@ def main(num_epochs=10):
 	# mnist dataset
 	print("Loading mnist data...")
 	X_train, y_train, X_val, y_val, X_test, y_test = load_dataset_mnist()
+	X_train_Out = np.copy(X_train)
+	print(len(X_train))
+
 	input_var = T.tensor4('inputs')
 	target_var = T.tensor4('targets')
 
@@ -151,60 +156,72 @@ def main(num_epochs=10):
 
 	prediction = lasagne.layers.get_output(network)
 	loss = lasagne.objectives.squared_error(prediction, target_var)
-	loss_avg = loss.mean()
+	# loss_avg = loss.mean()
+	aggregated_loss = lasagne.objectives.aggregate(loss)
+
+
 	params = lasagne.layers.get_all_params(network, trainable=True)
-	updates = lasagne.updates.nesterov_momentum(loss_avg, params, learning_rate=0.1, momentum=0.9)
+	updates = lasagne.updates.nesterov_momentum(aggregated_loss, params, learning_rate=0.1, momentum=0.9)
+
+	train_fn = theano.function([input_var, target_var], aggregated_loss, updates=updates)
 
 	test_prediction = lasagne.layers.get_output(network, deterministic=True)
+
 	test_loss = lasagne.objectives.squared_error(test_prediction, target_var)
-	test_loss_avg = test_loss.mean()
+	# test_loss_avg = test_loss.mean()
+	aggregated_test_loss = lasagne.objectives.aggregate(test_loss)
 
-	test_acc = T.mean( T.eq( T.argmax( test_prediction, axis=1 ), target_var ), dtype=theano.config.floatX )
+	#test_acc = T.mean( T.eq( T.argmax( test_prediction, axis=1 ), target_var ), dtype=theano.config.floatX )
 
-	train_fn = theano.function([input_var, target_var], loss_avg, updates=updates)
 
-	val_fn = theano.function([input_var, target_var], [test_loss_avg, test_acc])
+	# train_fn = theano.function([input_var, target_var], loss_avg, updates=updates)
+
+
+	val_fn = theano.function([input_var, target_var], aggregated_test_loss)
 
 	print("Starting training...")
 	# iteration over epochs:
 	for epoch in range(num_epochs):
-		train_err = 1
-		train_batches = 1
+		train_err = 0
+		train_batches = 0
 		start_time = time.time()
 		for batch in iterate_minibatches(X_train, X_train, 500, shuffle=True):
 			inputs, targets = batch
 			train_err += train_fn(inputs, targets)
 			train_batches += 1
+			print("{:.3f}s".format( time.time() - start_time), " -- minibatch :", train_batches, "training loss =", train_err / train_batches)
+		print("Epoch :", epoch + 1, "/", num_epochs, " ", time.time() - start_time, "training loss :", train_err / train_batches)
 
 		# And a full pass over the validation data:
-		val_err = 1
-		val_acc = 1
-		val_batches = 1
-		for batch in iterate_minibatches(X_val, X_val, 500, shuffle=False):
+		val_err = 0
+		val_acc = 0
+		val_batches = 0
+		for batch in iterate_minibatches(X_val, X_val, 100, shuffle=False):
 			inputs, targets = batch
-			err, acc = val_fn(inputs, targets)
+			err = val_fn(inputs, targets)
 			val_err += err
-			val_acc += acc
-			val_batches += 1	
+			val_batches += 1
+		print("Epoch :", epoch + 1, "/", num_epochs, " ", time.time() - start_time, "validation loss :", val_err / val_batches)
 
 		# Then we print the results for this epoch:
-		print( "Epoch {} of {} took {:.3f}s".format( epoch + 1, num_epochs, time.time() - start_time) )
-		print( "	training loss:\t\t{:.6f}".format(train_err / train_batches) )
-		print( "	validation loss:\t\t{:.6f}".format(val_err / val_batches) )
-		print( "	validation accuracy:\t\t{:.2f} %".format( val_acc / val_batches * 100) )
+		# print( "Epoch {} of {} took {:.3f}s".format( epoch + 1, num_epochs, time.time() - start_time) )
+		# print( "	training loss:\t\t{:.6f}".format(train_err / train_batches) )
+		# print( "	validation loss:\t\t{:.6f}".format(val_err / val_batches) )
+		# print( "	validation accuracy:\t\t{:.2f} %".format( val_acc / val_batches * 100) )
 
 	test_err = 0
 	test_acc = 0
 	test_batches = 0
-	for batch in iterate_minibatches(X_test, y_test, 500, shuffle=False):
+	for batch in iterate_minibatches(X_test, X_test, 100, shuffle=False):
 		inputs, targets = batch
-		err, acc = val_fn(inputs, targets)
+		err = val_fn(inputs, targets)
 		test_err += err
-		test_acc += acc
+		# test_acc += acc
 		test_batches += 1
 	print("Final results:")
 	print("	test loss:\t\t\t{:.6f}".format(test_err / test_batches))
-	print("	test accuracy:\t\t{:.2f} %".format(test_acc / test_batches * 100))
+	# print("	test accuracy:\t\t{:.2f} %".format(test_acc / test_batches * 100))
+	write_model_data(network, 'network')
 
 
 if __name__ == "__main__":
