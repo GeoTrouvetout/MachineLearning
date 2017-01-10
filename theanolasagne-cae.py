@@ -14,7 +14,7 @@ Created on Mon Jan 09 2017
 import sys, getopt
 #import cpickle as pickle
 
-from optparse import OptionParser
+import argparse
 
 import sys
 import os
