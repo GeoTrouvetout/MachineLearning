@@ -4,7 +4,7 @@
 """
 Copyright 2016 geo trouvetout
 
-Created on Tue Jan 09 2017
+Created on Mon Jan 09 2017
 
 @author: geo trouvetout
 @contact : grj@mailoo.org
@@ -88,13 +88,9 @@ def load_dataset_mnist():
 	return X_train, y_train, X_val, y_val, X_test, y_test
 
 
-# def read_model_data(model, filename):
-# 	"""Unpickles and loads parameters into a Lasagne model."""
-# 	filename = os.path.join('./', '%s.%s' % (filename, 'params'))
-# 	with open(filename, 'r') as f:
-# 		data = pickle.load(f)
-# 	lasagne.layers.set_all_param_values(model, data)
-
+def read_model_data(filename):
+	model = np.load(filename)
+	return model
 
 def write_model_data(model, filename):
 	"""Pickels the parameters within a Lasagne model."""
@@ -102,8 +98,6 @@ def write_model_data(model, filename):
 	filename = os.path.join('./', filename)
 	filename = '%s.%s' % (filename, 'npz')
 	np.savez(filename, *lasagne.layers.get_all_param_values(model))
-
-		
 
 def build_cae(input_var=None):
 
