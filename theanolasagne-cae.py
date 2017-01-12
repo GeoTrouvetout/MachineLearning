@@ -26,7 +26,8 @@ import theano.tensor as T
 
 import lasagne
 import nolearn
-
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 ########### FUNCTIONS DEF ################
 
@@ -170,6 +171,7 @@ def main(num_epochs=10):
 
 
 	params = lasagne.layers.get_all_params(network, trainable=True)
+
 	updates = lasagne.updates.nesterov_momentum(aggregated_loss, params, learning_rate=0.1, momentum=0.9)
 
 	train_fn = theano.function([input_var, target_var], aggregated_loss, updates=updates)
