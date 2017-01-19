@@ -101,7 +101,7 @@ def write_model_data(model, filename):
 	filename = '%s.%s' % (filename, 'npz')
 	np.savez(filename, *lasagne.layers.get_all_param_values(model))
 
-def build_gfc_cae(input_var=None):
+def build_gcae(input_var=None):
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
 	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
 	l_pool1 = lasagne.layers.MaxPool2DLayer(l_conv1, pool_size=(2,2) )
@@ -123,6 +123,57 @@ def build_gfc_cae(input_var=None):
 	
 	print(lasagne.layers.get_output_shape(l_out))
 	return l_out, l_outclass
+
+
+
+def build_lae(input_var=None):
+	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
+	print(lasagne.layers.get_output_shape(l_in))
+
+	network = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
+	print(lasagne.layers.get_output_shape(network))
+	
+	network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2,2) )
+	print(lasagne.layers.get_output_shape(network))
+	
+	network = lasagne.layers.Conv2DLayer( network, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	print(lasagne.layers.get_output_shape(network))
+	
+	network = lasagne.layers.MaxPool2DLayer( network, pool_size=(2,2) )
+	print(lasagne.layers.get_output_shape(network))
+	
+# 	l_fcenc = lasagne.layers.DenseLayer(l_pool2, num_units=512, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform())
+# 	l_fc = lasagne.layers.DenseLayer(l_fcenc, num_units=256, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform())
+	l_le = lasagne.layers.Conv2DLayer( network, num_filters=10, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	print(lasagne.layers.get_output_shape(l_le))
+	
+	network = lasagne.layers.Conv2DLayer( l_le, num_filters=32, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	print(lasagne.layers.get_output_shape(network))
+	
+# 	l_fcdec = lasagne.layers.DenseLayer(l_fc, num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
+# 	l_reshpfcdec = lasagne.layers.ReshapeLayer( l_fcdec, shape=(-1, 32, 4, 4) )
+# 	l_upscale1 = lasagne.layers.Upscale2DLayer(l_reshpfcdec, scale_factor=2, mode='repeat')
+
+	network = lasagne.layers.Upscale2DLayer(network, scale_factor=2, mode='repeat')
+	print(lasagne.layers.get_output_shape(network))
+	
+	network = lasagne.layers.Deconv2DLayer( network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	print(lasagne.layers.get_output_shape(network))
+	
+	network = lasagne.layers.Upscale2DLayer(network, scale_factor=2, mode='repeat')
+	print(lasagne.layers.get_output_shape(network))
+	
+	network = lasagne.layers.Deconv2DLayer(network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
+	print(lasagne.layers.get_output_shape(network))
+	
+	l_out = lasagne.layers.FeaturePoolLayer(network, 32, pool_function=theano.tensor.max )
+	
+	l_outclass = lasagne.layers.DenseLayer(l_le, num_units=10, nonlinearity=lasagne.nonlinearities.softmax, W=lasagne.init.GlorotUniform())
+	
+	
+	print(lasagne.layers.get_output_shape(l_out))
+	return l_out, l_outclass
+
 
 
 """
@@ -156,7 +207,7 @@ def main(num_epochs=10):
 	class_var = T.ivector('classes')
 	
 	print("Loading mnist data...")
-	network_enc, network_class = build_gfc_cae(input_var)
+	network_enc, network_class = build_lae(input_var)
 	
 	prediction_enc = lasagne.layers.get_output(network_enc)
 	loss_enc = lasagne.objectives.squared_error(prediction_enc, target_var)
@@ -210,7 +261,7 @@ def main(num_epochs=10):
 			err, acc= val_fn_glob(inputs, classes, targets)
 			train_acc += acc
 			train_batches += 1
-			print(" minibatch",train_batches, " ( epoch", epoch + 1, ") :", "\t{:.3f}s".format( time.time() - start_time) )
+			print(" minibatch",train_batches, "of epoch", epoch + 1, ":", "\t{:.3f}s".format( time.time() - start_time) )
 			print("\t training loss:\t\t{:.6f} ".format(train_err / train_batches) )
 			print("\t training accuracy:\t{:.2f} %".format( 100*(train_acc / train_batches) ) )		
 	
@@ -273,5 +324,5 @@ def main(num_epochs=10):
 	
 
 if __name__ == "__main__":
-  print("guided fully-connected convolutional autoencoder")
+	print("guided fully-connected convolutional autoencoder")
 	main()
