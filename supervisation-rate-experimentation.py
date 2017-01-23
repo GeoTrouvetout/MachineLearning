@@ -223,22 +223,22 @@ def main( num_epochs=10, num_exp=10, prop_valid=20 ):
 	reconstruction_enc = lasagne.layers.get_output(network_enc)
 	prediction_class = lasagne.layers.get_output(network_class)
 	ce_class = lasagne.objectives.categorical_crossentropy(prediction_class, class_var)
-	mce_class = lasagne.objectives.aggregate(ce_class)
+	ace_class = lasagne.objectives.aggregate(ce_class)
 	params_class = lasagne.layers.get_all_params(network_class, trainable=True)
-	updates_class = lasagne.updates.nesterov_momentum(mce_class, params_class, learning_rate=0.1, momentum=0.9)
+	updates_class = lasagne.updates.nesterov_momentum(ace_class, params_class, learning_rate=0.1, momentum=0.9)
 	
-	train_fn_class = theano.function([input_var, class_var], mce_class, updates=updates_class)
+	train_fn_class = theano.function([input_var, class_var], ace_class, updates=updates_class)
 	
 	test_class_prediction = lasagne.layers.get_output(network_class, deterministic=True)
 	test_class_ce = lasagne.objectives.categorical_crossentropy(test_class_prediction, class_var)
-	test_class_mce = lasagne.objectives.aggregate(test_class_ce)
+	test_class_ace = lasagne.objectives.aggregate(test_class_ce)
 	test_class_acc = T.mean( T.eq( T.argmax( test_class_prediction, axis=1 ), class_var ), dtype=theano.config.floatX )
 	
 	test_enc_reconstruction = lasagne.layers.get_output(network_enc, deterministic=True)
 	test_enc_se = lasagne.objectives.squared_error(test_enc_reconstruction, target_var)
 	test_enc_mse = lasagne.objectives.aggregate(test_enc_se)
 	
-	val_fn_class = theano.function([input_var, class_var], [test_class_mce, test_class_acc] )
+	val_fn_class = theano.function([input_var, class_var, target_var], [test_class_ace, test_class_acc] )
 	val_fn_enc = theano.function([input_var, target_var], test_enc_mse)
 	
 	
@@ -251,17 +251,31 @@ def main( num_epochs=10, num_exp=10, prop_valid=20 ):
 	seqm = np.arange(100,-10,-10)
 # 	m = 0
 	seqn = np.arange(50)
-	
-	ListOfListAccTest = np.zeros( [len(seqm), len(seqn)] ) 
-	ListOfListLossTest = np.zeros( [len(seqm), len(seqn)] ) 
-	ListOfListMseTest = np.zeros ( [len(seqm), len(seqn)] )
-	ListOfListOfListMseValid = np.zeros( [len(seqm), len(seqn), num_epochs] )
-	ListOfListOfListLossValid = np.zeros( [len(seqm), len(seqn), num_epochs] )
-	ListOfListOfListAccValid = np.zeros( [len(seqm), len(seqn), num_epochs] )
-	ListOfListOfListMseTrain = np.zeros( [len(seqm), len(seqn), num_epochs] )
-	ListOfListOfListLossTrain = np.zeros( [len(seqm), len(seqn), num_epochs] )
-	ListOfListOfListAccTrain = np.zeros( [len(seqm), len(seqn), num_epochs] )
-	
+
+	### results for NS training ###
+	OptNbSample_ns = np.zeros ( [len(seqm), len(seqn)] )
+	OptMseTrain_ns = np.zeros ( [len(seqm), len(seqn)] )
+	OptMseValid_ns = np.zeros ( [len(seqm), len(seqn)] )
+	TensorMseTrain_ns = np.zeros( [len(seqm), len(seqn), num_epochs] )
+	TensorMseValid_ns = np.zeros( [len(seqm), len(seqn), num_epochs] )
+
+	### results for S training ###
+	OptNbSample_s = np.zeros ( [len(seqm), len(seqn)] )
+	OptAccTrain_s = np.zeros( [len(seqm), len(seqn)] ) 
+	OptAceTrain_s = np.zeros( [len(seqm), len(seqn)] ) 
+	OptAccValid_s = np.zeros( [len(seqm), len(seqn)] ) 
+	OptAceValid_s = np.zeros( [len(seqm), len(seqn)] ) 
+	TensorMseTrain_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
+	TensorMseValid_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
+	TensorAceTrain_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
+	TensorAceValid_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
+	TensorAccTrain_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
+	TensorAccValid_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
+
+	### results Test ###
+	ArrayAccTest = np.zeros( [len(seqm), len(seqn)] ) 
+	ArrayAceTest = np.zeros( [len(seqm), len(seqn)] ) 
+	ArrayMseTest = np.zeros ( [len(seqm), len(seqn)] )
 	
 	for m in seqm/10 :
 		prop_train_s = m * 10
@@ -302,15 +316,15 @@ def main( num_epochs=10, num_exp=10, prop_valid=20 ):
 			print("nb images supervised Train/Val:", len(X_train_s), "/", len(X_val_s) )
 			
 			
-			
-			
 # 			print(len(X_train_class), len(X_train_enc))
 			
 # 			print("Starting training...")
 			# iteration over epochs:
 			training_time = time.time()
 			MseTrain_lowest = sys.float_info.max
-			params_nn_ns_best = network_enc
+			best_nbsample = 0
+			params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
+			
 			for e_ns in range(num_epochs):
 				
 				train_err = 0
@@ -321,12 +335,7 @@ def main( num_epochs=10, num_exp=10, prop_valid=20 ):
 				train_batches_class = 0
 				start_time = time.time()
 				
-				### shuffle indices of train data
-				
-				ind_train_s = np.arange( len(y_train_s) )
-				np.random.shuffle( ind_train_s )
-				X_train_s = X_train_s[ ind_train_s ]
-				y_train_s = y_train_s[ ind_train_s ]
+				### shuffle indices of train/valid data
 				
 				ind_train_ns = np.arange( len(y_train_ns) )
 				np.random.shuffle( ind_train_ns )
@@ -337,100 +346,130 @@ def main( num_epochs=10, num_exp=10, prop_valid=20 ):
 				#### batch TRAIN ENCODER ####
 				for batch in iterate_minibatches(X_train_ns, X_train_ns, y_train_ns, 500, shuffle=True):
 					inputs, targets, classes = batch
-					train_err_enc += train_fn_enc( inputs, targets )
-					train_batches_enc += 1
+					train_mse += train_fn_enc( inputs, targets )
+					train_batches += 1
 				
-				ListOfListOfListMseTrain[m][n][e_ns] = MseTrain
-				ListOfListOfListLossTrain[m][n][e_ns] = LossTrain
-				ListOfListOfListAccTrain[m][n][e_ns] = AccTrain
-				print("Epoch :", epoch + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
-				print("\t training recons MSE:\t\t{:.6f} ".format( MseTrain ) )
-				print("\t training class loss:\t\t{:.6f} ".format( LossTrain ) )
-				print("\t training class acc:\t\t{:.2f} %".format( 100*( AccTrain ) ) )		
-				
-				
-				for batch in iterate_minibatches(X_val, X_val, y_val, 500, shuffle=True):
-					inputs, targets, classes = batch
-					val_err_enc += val_fn_enc(inputs, targets)
-		# 			val_err_class += val_fn_class(inputs, classes)
-					err, acc= val_fn_class(inputs, classes)
-					val_err_class += err
-					val_acc_class += acc
-					val_batches += 1
-				# print("Epoch :", epoch + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
-# 				print("")
-				print("\t validation recons loss:\t{:.6f}".format(val_err_enc / val_batches) )
-				print("\t validation class loss:\t\t{:.6f}".format(val_err_class / val_batches) )
-				print("\t validation class acc:\t\t{:.2f} %".format( 100*(val_acc_class / val_batches) ) )		
-				
-				ListOfListOfListMseValid[m][n][epoch] = val_err_enc / val_batches
-				ListOfListOfListLossValid[m][n][epoch] = val_err_class / val_batches
-				ListOfListOfListAccValid[m][n][epoch] = val_acc_class / val_batches
-	
-				if train_batches_enc != 0: 
-					MseTrain = (train_err_enc / train_batches_enc)
+				if train_batches != 0: 
+					MseTrain = (train_mse / train_batches)
 				else: 
 					MseTrain = 0
+
+				#### batch VALID ENCODER ####
+				for batch in iterate_minibatches(X_val_ns, X_val_ns, y_val_ns, 500, shuffle=True):
+					inputs, targets, classes = batch
+					val_mse += val_fn_enc(inputs, targets)
+					val_batches += 1
+				
+				if val_batches != 0: 
+					MseVal = (val_mse / val_batches)
+				else: 
+					MseVal = 0
 				
 				print("Epoch :", epoch + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
 				print("\t training recons MSE:\t\t{:.6f} ".format( MseTrain ) )
-				if MseTrain < MseTrain_lowest:
-					MseTrain_lowest = MseTrain
+				print("\t validation recons MSE:\t{:.6f}".format( MseVal ) )
+				
+				TensorMseTrain_ns[m][n][e_ns] = MseTrain
+				TensorMseValid_ns[m][n][e_ns] = MseVal
+				
+				if MseVal < MseVal_lowest:
+					MseVal_lowest = MseVal
+					OptMseTrain_ns[m][n] = MseVal
+					OptMseTrain_ns[m][n] = MseTrain
+					OptNbSample_ns[m][n] = e_ns * len(X_train_ns)
 					params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
 				
+# 				ListOfListOfListLossTrain[m][n][e_ns] = LossTrain
+# 				ListOfListOfListAccTrain[m][n][e_ns] = AccTrain
+# 				print("\t training class loss:\t\t{:.6f} ".format( LossTrain ) )
+# 				print("\t training class acc:\t\t{:.2f} %".format( 100*( AccTrain ) ) )		
 				
-			for e_ns in range(num_epochs):
+				
+# 				print("")
+# 				print("\t validation class loss:\t\t{:.6f}".format(val_err_class / val_batches) )
+# 				print("\t validation class acc:\t\t{:.2f} %".format( 100*(val_acc_class / val_batches) ) )		
+				
+# 				ListOfListOfListMseValid[m][n][epoch] = val_err_enc / val_batches
+# 				ListOfListOfListLossValid[m][n][epoch] = val_err_class / val_batches
+# 				ListOfListOfListAccValid[m][n][epoch] = val_acc_class / val_batches
+			
+				
+			lasagne.layers.set_all_params_values( network_enc, params_nn_ns_best )
+
+			AceTrain_lowest = sys.float_info.max
+			best_nbsample = 0
+			params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+			
+			for e_s in range(num_epochs):
+				
+				train_err = 0
+				train_acc_class = 0
+				train_err_enc = 0
+				train_err_class = 0
+				train_batches_enc = 0
+				train_batches_class = 0
+				start_time = time.time()
+				
+				### shuffle indices of train/valid data
+				
+				ind_train_s = np.arange( len(y_train_s) )
+				np.random.shuffle( ind_train_s )
+				X_train_s = X_train_s[ ind_train_s ]
+				y_train_s = y_train_s[ ind_train_s ]
+				
 				
 				#### batch TRAIN CLASSIFIER ####
-				for batch in iterate_minibatches(X_train_class, X_train_class, y_train_class, 500, shuffle=True):
+				for batch in iterate_minibatches(X_train_s, X_train_s, y_train_s, 500, shuffle=True):
 					inputs, targets, classes = batch
-					train_err_class += train_fn_class(inputs, classes)
-					err, acc= val_fn_class(inputs, classes)
-					train_acc_class += acc
-					train_batches_class += 1
-		# 			print(" minibatch",train_batches, "of epoch", epoch + 1, ":", "\t{:.3f}s".format( time.time() - start_time) )
-		# 			print("\t training loss class:\t{:.6f} ".format(train_err_class / train_batches) )
-		# 			print("\t training accuracy:\t{:.2f} %".format( 100*(train_acc / train_batches) ) )		
-			
-					# print("		training loss enc =", train_err_enc / train_batches) 
-					# print("		training loss class =", train_err_class / train_batches) 
-					
-				# simple verification if supervisionRate = 0% or 100 %
-				if train_batches_class != 0:
-					LossTrain = (train_err_class / train_batches_class)
-					AccTrain = (train_acc_class / train_batches_class)
-				else:
-					LossTrain = 0
-					AccTrain = 0
-				# save training results
-								
+					train_ace += train_fn_class( inputs, classes )
+					train_batches += 1
 				
-				# print("		training loss enc =", train_err_enc / train_batches) 
-				# print("		training loss class =", train_err_class / train_batches) 
-				# And a full pass over the validation data:
-				val_err = 0
-				val_err_enc = 0
-				val_err_class = 0
-				val_acc_class = 0
-				val_batches = 0
-				for batch in iterate_minibatches(X_val, X_val, y_val, 500, shuffle=True):
+				if train_batches != 0: 
+					AceTrain = (train_ace / train_batches)
+				else: 
+					AceTrain = 0
+
+				#### batch VALID ENCODER ####
+				for batch in iterate_minibatches(X_val_ns, X_val_ns, y_val_ns, 500, shuffle=True):
 					inputs, targets, classes = batch
-					val_err_enc += val_fn_enc(inputs, targets)
-		# 			val_err_class += val_fn_class(inputs, classes)
-					err, acc= val_fn_class(inputs, classes)
-					val_err_class += err
-					val_acc_class += acc
+					ace, acc = val_fn_class( inputs, classes, targets )
+					val_ace += ace
+					val_acc += acc
+					val_mse += val_fn_enc(inputs, targets)
 					val_batches += 1
-				# print("Epoch :", epoch + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
-# 				print("")
-				print("\t validation recons loss:\t{:.6f}".format(val_err_enc / val_batches) )
-				print("\t validation class loss:\t\t{:.6f}".format(val_err_class / val_batches) )
-				print("\t validation class acc:\t\t{:.2f} %".format( 100*(val_acc_class / val_batches) ) )		
 				
-				ListOfListOfListMseValid[m][n][epoch] = val_err_enc / val_batches
-				ListOfListOfListLossValid[m][n][epoch] = val_err_class / val_batches
-				ListOfListOfListAccValid[m][n][epoch] = val_acc_class / val_batches
+				if val_batches != 0: 
+					MseVal = (val_mse / val_batches)
+					AceVal = (val_ace / val_batches)
+					AccVal = (val_acc / val_batches)
+				else: 
+					MseVal = 0
+					AceVal = 0
+					AccVal = 0
+				
+				print("Epoch :", epoch + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
+				print("\t training class ACE:\t\t{:.6f} ".format( AceTrain ) )
+				print("\t validation class ACE:\t{:.6f}".format( AceVal ) )
+				print("\t validation class MSE:\t{:.6f}".format( AceVal ) )
+				print("\t validation class ACC:\t{:.6f}".format( AceVal ) )
+				
+				TensorAceTrain_s[m][n][e_s] = AceTrain
+				TensorMseValid_s[m][n][e_s] = MseValid
+				TensorAceValid_s[m][n][e_s] = AceValid
+				TensorAccValid_s[m][n][e_s] = AccValid
+				
+				if AceVal < AceVal_lowest:
+					AceVal_lowest = AceVal
+					OptAceTrain_s[m][n] = AceTrain
+					OptAceValid_s[m][n] = AceValid
+					OptMseValid_s[m][n] = MseVal
+					OptAccValid_s[m][n] = AccVal
+					OptNbSample_s[m][n] = e_s * len(X_train_s)
+					params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+					
 			
+			lasagne.layers.set_all_params_values( network_enc, params_nn_ns_best )
+			lasagne.layers.set_all_params_values( network_class, params_nn_s_best )
 			test_err = 0
 			test_err_enc = 0
 			test_err_class = 0
@@ -438,21 +477,25 @@ def main( num_epochs=10, num_exp=10, prop_valid=20 ):
 			test_batches = 0
 			for batch in iterate_minibatches(X_test, X_test, y_test, 500, shuffle=True):
 				inputs, targets, classes = batch
-				test_err_enc += val_fn_enc(inputs, targets)
-		# 		test_err_class += val_fn_class(inputs, classes)
-				err, acc= val_fn_class(inputs, classes)
-				test_err_class += err
-				test_acc_class += acc
+				ace, acc += val_fn_class( inputs, classes, targets )
+				test_ace += ace
+				test_acc += acc
+				test_mse += val_fn_enc(inputs, targets)
 				test_batches += 1
+			
+			MseTest = (test_mse / test_batches)
+			AceTest = (test_ace / test_batches)
+			AccTest = (test_acc / test_batches)
+			ArrayAccTest[m][n] = AccTest
+			ArrayAceTest[m][n] = AceTest
+			ArrayMseTest[m][n] = MseTest
+				
 # 			print("Epoch :", epoch + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - training_time))
 			print("Test Results | supervision rate ", 100*s, "% | experiment ", n, "/", len(seqn) )
-			print("\t test recons loss:\t\t{:.6f}".format(test_err_enc / test_batches) )
-			print("\t test class loss:\t\t{:.6f}".format(test_err_class / test_batches) )
-			print("\t test class acc:\t\t{:.2f} %".format( 100*(test_acc_class / test_batches) ) )		
-			ListOfListAccTest[m][n] =  (test_acc_class / test_batches) 
-			ListOfListLossTest[m][n] =  (test_err_class / test_batches) 
-			ListOfListMseTest[m][n] =  (test_err_enc / test_batches) 
-		
+			print("\t test recons MSE:\t\t{:.6f}".format( MseTest) )
+			print("\t test class ACE:\t\t{:.6f}".format( AceTest) )
+			print("\t test class ACC:\t\t{:.2f} %".format( 100*(AccTest) ) )
+			
 # 		print(s, m, n)
 			
 		
