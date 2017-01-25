@@ -38,23 +38,54 @@ def read_npz(filename):
 
 
 def main():
-	parser = argparse.ArgumentParser(description="open [file.npz] and convert it into csv", formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser = argparse.ArgumentParser(description="open [file.npz] and convert it into csv")
 	parser.add_argument("FILENPZ", help="fileName of the input image")
 	args = parser.parse_args()
 	filename = args.FILENPZ
 	fnp = read_npz(filename)
-	print(fnp.keys())
+	# print(fnp.keys())
 	header = fnp.keys()
-# 	header = ["OptNbSample_ns","OptMseTrain_ns","OptMseValid_ns","TensorMseTrain_ns","TensorMseValid_ns","OptNbSample_s","OptAccTrain_s","OptAceTrain_s","OptMseValid_s","OptAccValid_s","OptAceValid_s","TensorMseValid_s","TensorAceTrain_s","TensorAceValid_s","TensorAccValid_s","ArrayAccTest","ArrayAceTest","ArrayMseTest"]
-	for h in header:
-# 		arr_i = '%s%s' % ('arr_', i)
-		k = getattr(fnp.f, h)
+	nameHeader = ["OptNbSample_ns", "OptMseTrain_ns", "OptMseValid_ns","TensorMseTrain_ns","TensorMseValid_ns","OptNbSample_s","OptAccTrain_s","OptAceTrain_s","OptMseValid_s","OptAccValid_s","OptAceValid_s","TensorMseValid_s","TensorAceTrain_s","TensorAceValid_s","TensorAccValid_s","ArrayAccTest","ArrayAceTest","ArrayMseTest"]
+	nbMatrix = 0
+	nbTensor = 0
+	
+	for i in np.arange(len(header)):
+		arr_i = '%s%s' % ('arr_', i)
+		k = getattr(fnp.f, arr_i)
 # 		print(fnp.keys())
-		# print(k.shape)
+		print(nameHeader[i], k.shape)
+		
 		if len(k.shape) == 2:
-			print("-_-")
+			nbMatrix += 1
 		if len(k.shape) == 3:
-			print("wow ... ;)")
+			nbTensor += 1
+
+
+	print(nbMatrix)
+	print(nbTensor)
+
+	fig, axes = plt.subplots(nrows=3, 
+		figsize=(6, 6), sharey=True)
+	ArrayAccTest = getattr(fnp.f, 'arr_15').T
+	axes[0].boxplot(ArrayAccTest)
+	ArrayAceTest = getattr(fnp.f, 'arr_16')
+	axes[1].boxplot(ArrayAceTest)
+	ArrayMseTest = getattr(fnp.f, 'arr_17')
+	axes[2].boxplot(ArrayMseTest)
+	
+	plt.show()
+	# axes[1].boxplot(ArrayAccTest, labels=)
+	# axes[1].boxplot(ArrayAceTest, labels=labels)
+	# axes[3].boxplot(ArrayMseTest, labels=labels)
+	# plt.show()
+	# for h in header:
+	# 	k = getattr(fnp.f, h)
+	# 	if len(k.shape) == 2:
+	# 		axes[0, 0].boxplot(k, labels=labels)
+
+	# axes[0, 0].boxplot(k, labels=labels)
+	# axes[0, 0].set_title('Default', fontsize=fs)
+	# print("wow ... ;)")
 
 if __name__ == "__main__":
 	print("open and display [dlrecital] experiments results")
