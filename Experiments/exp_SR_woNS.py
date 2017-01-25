@@ -191,13 +191,36 @@ def iterate_minibatches(inputs, targets, classes, batchsize, shuffle=False):
 
 ############## MAIN ################
 
-def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
+def main():
 	
 	parser = argparse(description ="experiments of supervision rate on dNN classifier", formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument("outnpz", help ="filename of the output file (warning: file will be saved as [filename].npz)")
+	parser.add_argument("-e", "--number-epoch",
+					dest="num_epochs",
+					type=int,
+					default=100,
+					help="number of epoch",)
+	parser.add_argument("-n", "--number-experiments",
+					dest="num_exp",
+					type=int,
+					default=10,
+					help="number of experiments",)
+	parser.add_argument("-p", "--validation-proportion",
+					dest="prop_valid",
+					type=int,
+					default=20,
+					help="proportion of validation data for the split validation/train data (in %)",)
+	parser.add_argument("-b", "--size-minibatch",
+					dest="size_minibatch",
+					type=int,
+					default=1000,
+					help="size of minibatch",)
 	
-	
-	
+	num_epochs=args.num_epochs
+	num_exp=args.num_exp
+	prop_valid=args.prop_valid
+	size_minibatch = args.size_minibatch 
+
 	print("Set network")
 	input_var = T.tensor4('inputs')
 	target_var = T.tensor4('targets')

@@ -191,7 +191,35 @@ def iterate_minibatches(inputs, targets, classes, batchsize, shuffle=False):
 
 ############## MAIN ################
 
-def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
+def main():
+	
+	parser = argparse(description ="experiments of supervision rate on dNN classifier", formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument("outnpz", help ="filename of the output file (warning: file will be saved as [filename].npz)")
+	parser.add_argument("-e", "--number-epoch",
+					dest="num_epochs",
+					type=int,
+					default=100,
+					help="number of epoch",)
+	parser.add_argument("-n", "--number-experiments",
+					dest="num_exp",
+					type=int,
+					default=10,
+					help="number of experiments",)
+	parser.add_argument("-p", "--validation-proportion",
+					dest="prop_valid",
+					type=int,
+					default=20,
+					help="proportion of validation data for the split validation/train data (in %)",)
+	parser.add_argument("-b", "--size-minibatch",
+					dest="size_minibatch",
+					type=int,
+					default=1000,
+					help="size of minibatch",)
+	
+	num_epochs=args.num_epochs
+	num_exp=args.num_exp
+	prop_valid=args.prop_valid
+	size_minibatch = args.size_minibatch 
 
 	print("Set network")
 	input_var = T.tensor4('inputs')
@@ -305,8 +333,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
 			
 			nb_valid_s = np.floor( (prop_valid/100)* len(X_train_s) ).astype(int)
 			nb_valid_ns = np.floor( (prop_valid/100)* len(X_train_ns) ).astype(int)
-# 			print("nb_valid_s", nb_valid_s )
-# 			print("nb_valid_ns", nb_valid_ns )
+
 			if nb_valid_s !=0:
 				# train/validation split
 				X_train_s, X_val_s = X_train_s[:-nb_valid_s], X_train_s[-nb_valid_s:]
@@ -315,8 +342,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
 				X_val_s, X_train_s = X_train_s[:-nb_valid_s], X_train_s[-nb_valid_s:]
 				y_val_s, y_train_s = y_train_s[:-nb_valid_s], y_train_s[-nb_valid_s:]
 			print("number images for supervised learning (train/val):", nb_train_s , "(", len(X_train_s), "/", len(X_val_s),")")
-# 			print("number images for non-supervised learning (train/val):", len(X_train_ns) )
-# 			print("Split supervised Train/Val:", len(X_train_s), "/", len(X_val_s) )
+
 		
 			if nb_valid_ns !=0:
 				# train/validation split
@@ -326,7 +352,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
 				X_val_ns, X_train_ns = X_train_ns[:-nb_valid_ns], X_train_ns[-nb_valid_ns:]
 				y_val_ns, y_train_ns = y_train_ns[:-nb_valid_ns], y_train_ns[-nb_valid_ns:]
 			print("number images for non-supervised learning (train/val):", nb_train_ns , "(", len(X_train_ns), "/", len(X_val_ns),")")
-# 			print("Split non-supervised Train/Val:", len(X_train_ns), "/", len(X_val_ns))
+
 			
 			
 # 			print(len(X_train_class), len(X_train_enc))
@@ -375,7 +401,6 @@ def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
 				if val_batches != 0: 
 					MseVal = (val_mse / val_batches)
 				t = time.time() - overall_time
-# 				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, ((t - 3600*(t//3600)) - 60*(t - (3600*(t//3600)))//60)
 				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
 				print("-----UnSupervised-----")
 				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
@@ -396,19 +421,6 @@ def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
 					params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
 					params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
 				
-# 				ListOfListOfListLossTrain[m][n][e_ns] = LossTrain
-# 				ListOfListOfListAccTrain[m][n][e_ns] = AccTrain
-# 				print("\t training class loss:\t\t{:.6f} ".format( LossTrain ) )
-# 				print("\t training class acc:\t\t{:.2f} %".format( 100*( AccTrain ) ) )		
-				
-				
-# 				print("")
-# 				print("\t validation class loss:\t\t{:.6f}".format(val_err_class / val_batches) )
-# 				print("\t validation class acc:\t\t{:.2f} %".format( 100*(val_acc_class / val_batches) ) )		
-				
-# 				ListOfListOfListMseValid[m][n][epoch] = val_err_enc / val_batches
-# 				ListOfListOfListLossValid[m][n][epoch] = val_err_class / val_batches
-# 				ListOfListOfListAccValid[m][n][epoch] = val_acc_class / val_batches
 			
 				
 			lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
@@ -537,7 +549,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
 # 	dico['TrainEpochLoss'] = ListOfListOfListLossTrain
 # 	dico['TrainEpochMse'] = ListOfListOfListMseTrain
 	print("saving results ... ")
-	diconame = os.path.join('./', 'exp-supervision-rate')
+	diconame = os.path.join('./', 'exp-supervision-rate-without_ns')
 	diconame = '%s.%s' % (diconame, 'npz')
 	np.savez(diconame, 
 		OptNbSample_ns=OptNbSample_ns, 
