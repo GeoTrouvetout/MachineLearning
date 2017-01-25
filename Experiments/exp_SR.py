@@ -550,8 +550,8 @@ def main():
 	print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
 
 	print("saving results ... ")
-	diconame = os.path.join('./', 'exp-supervision-rate-without_ns')
-	diconame = '%s.%s' % (diconame, 'npz')
+	# diconame = os.path.join('./', outnpz)
+	diconame = '%s.%s' % (outnpz, 'npz')
 	np.savez(diconame, 
 		OptNbSample_ns=OptNbSample_ns, 
 		OptNbEpoch_ns=OptNbEpoch_ns, 
