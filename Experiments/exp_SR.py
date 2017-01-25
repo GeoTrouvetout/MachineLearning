@@ -218,6 +218,9 @@ def main():
 						help="bypass autoencoder (unsupervised learning)")
 	parser.set_defaults(visual=True)
 	
+
+	args = parser.parse_args()
+
 	num_epochs=args.num_epochs
 	num_exp=args.num_exp
 	prop_valid=args.prop_valid
