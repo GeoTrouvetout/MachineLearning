@@ -373,7 +373,7 @@ def main():
 			MseVal_lowest = sys.float_info.max
 			best_nbsample = 0
 			params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
-			if !arg.no_ul:
+			if not arg.no_ul:
 				for e_ns in range(num_epochs):
 					
 					train_mse = 0
