@@ -49,16 +49,16 @@ def main():
 	nbMatrix = 0
 	nbTensor = 0
 	
-	for i in np.arange(len(header)):
-		arr_i = '%s%s' % ('arr_', i)
-		k = getattr(fnp.f, arr_i)
-# 		print(fnp.keys())
-		print(nameHeader[i], k.shape)
+# 	for i in np.arange(len(header)):
+# 		arr_i = '%s%s' % ('arr_', i)
+# 		k = getattr(fnp.f, arr_i)
+# # 		print(fnp.keys())
+# 		print(nameHeader[i], k.shape)
 		
-		if len(k.shape) == 2:
-			nbMatrix += 1
-		if len(k.shape) == 3:
-			nbTensor += 1
+# 		if len(k.shape) == 2:
+# 			nbMatrix += 1
+# 		if len(k.shape) == 3:
+# 			nbTensor += 1
 
 
 	print(nbMatrix)
@@ -66,11 +66,11 @@ def main():
 
 	fig, axes = plt.subplots(nrows=3, 
 		figsize=(6, 6), sharey=True)
-	ArrayAccTest = getattr(fnp.f, 'arr_15').T
+	ArrayAccTest = getattr(fnp.f, 'ArrayAccTest').T
 	axes[0].boxplot(ArrayAccTest)
-	ArrayAceTest = getattr(fnp.f, 'arr_16')
+	ArrayAceTest = getattr(fnp.f, 'ArrayAceTest')
 	axes[1].boxplot(ArrayAceTest)
-	ArrayMseTest = getattr(fnp.f, 'arr_17')
+	ArrayMseTest = getattr(fnp.f, 'ArrayMseTest')
 	axes[2].boxplot(ArrayMseTest)
 	
 	plt.show()
