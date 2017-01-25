@@ -497,8 +497,8 @@ def main():
 # 				print("Epoch :", e_s + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
 				print("\t training class ACE:\t{:.6f} ".format( AceTrain ) )
 				print("\t validation class ACE:\t{:.6f}".format( AceVal ) )
-				print("\t validation class MSE:\t{:.6f}".format( AceVal ) )
-				print("\t validation class ACC:\t{:.6f}".format( AceVal ) )
+				print("\t validation class MSE:\t{:.6f}".format( MseVal ) )
+				print("\t validation class ACC:\t{:.2f}%".format( 100*(AccVal) )  )
 				print("")
 				TensorAceTrain_s[m][n][e_s] = AceTrain
 				TensorMseValid_s[m][n][e_s] = MseVal

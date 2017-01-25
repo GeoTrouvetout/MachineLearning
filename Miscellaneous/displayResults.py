@@ -50,7 +50,11 @@ def main():
 # 		arr_i = '%s%s' % ('arr_', i)
 		k = getattr(fnp.f, h)
 # 		print(fnp.keys())
-		print(k.shape)
+		# print(k.shape)
+		if len(k.shape) == 2:
+			print("-_-")
+		if len(k.shape) == 3:
+			print("wow ... ;)")
 
 if __name__ == "__main__":
 	print("open and display [dlrecital] experiments results")
