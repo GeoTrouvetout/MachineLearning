@@ -214,11 +214,9 @@ def main():
 					type=int,
 					default=1000,
 					help="size of minibatch",)
-	parser.add_argument("-u", "--bypass-ul",
-					dest="no_ul",
-					type=bool,
-					default=false,
-					help="bypass unsupervised learning",)
+	parser.add_argument("-u", "--bypass-autoencoded", action="store_false",dest="no_ul",
+						help="bypass autoencoder (unsupervised learning)")
+	parser.set_defaults(visual=True)
 	
 	num_epochs=args.num_epochs
 	num_exp=args.num_exp
