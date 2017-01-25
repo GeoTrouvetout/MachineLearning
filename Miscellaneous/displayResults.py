@@ -33,34 +33,24 @@ import matplotlib.image as mpimg
 
 
 def read_npz(filename):
-	file = np.loadz(filename)
+	file = np.load(filename)
 	return file
 
 
-def main:
+def main():
 	parser = argparse.ArgumentParser(description="open [file.npz] and convert it into csv", formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument("FILENPZ", help="fileName of the input image")
 	args = parser.parse_args()
 	filename = args.FILENPZ
-	file = read_npz(filename)
-	OptNbSample_ns, 
-	OptMseTrain_ns,
-	OptMseValid_ns,
-	TensorMseTrain_ns,
-	TensorMseValid_ns,
-	OptNbSample_s,
-	OptAccTrain_s, 
-	OptAceTrain_s, 
-	OptMseValid_s, 
-	OptAccValid_s, 
-	OptAceValid_s, 
-	TensorMseValid_s,
-	TensorAceTrain_s,
-	TensorAceValid_s,
-	TensorAccValid_s,
-	ArrayAccTest, 
-	ArrayAceTest,  
-	ArrayMseTest
+	fnp = read_npz(filename)
+	print(fnp.keys())
+	header = fnp.keys()
+# 	header = ["OptNbSample_ns","OptMseTrain_ns","OptMseValid_ns","TensorMseTrain_ns","TensorMseValid_ns","OptNbSample_s","OptAccTrain_s","OptAceTrain_s","OptMseValid_s","OptAccValid_s","OptAceValid_s","TensorMseValid_s","TensorAceTrain_s","TensorAceValid_s","TensorAccValid_s","ArrayAccTest","ArrayAceTest","ArrayMseTest"]
+	for h in header:
+# 		arr_i = '%s%s' % ('arr_', i)
+		k = getattr(fnp.f, h)
+# 		print(fnp.keys())
+		print(k.shape)
 
 if __name__ == "__main__":
 	print("open and display [dlrecital] experiments results")
