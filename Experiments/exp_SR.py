@@ -193,7 +193,7 @@ def iterate_minibatches(inputs, targets, classes, batchsize, shuffle=False):
 
 def main():
 	parser = argparse.ArgumentParser(description="experiments of supervision rate on dNN classifier")
-	parser.add_argument("outnpz", help ="filename of the output file (warning: file will be saved as [filename].npz)")
+	parser.add_argument("outnpz", help ="filename of the output file (warning: file will be saved as a npz)")
 	parser.add_argument("-e", "--number-epoch",
 					dest="num_epochs",
 					type=int,
@@ -214,9 +214,9 @@ def main():
 					type=int,
 					default=1000,
 					help="size of minibatch",)
-	parser.add_argument("-u", "--bypass-autoencoded", action="store_false",dest="no_ul",
+	parser.add_argument("-u", "--bypass-autoencoded", action="store_true",dest="no_ul",
 						help="bypass autoencoder (unsupervised learning)")
-	parser.set_defaults(visual=True)
+	parser.set_defaults(visual=False)
 	
 
 	args = parser.parse_args()
@@ -373,7 +373,7 @@ def main():
 			MseVal_lowest = sys.float_info.max
 			best_nbsample = 0
 			params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
-			if not arg.no_ul:
+			if not args.no_ul:
 				for e_ns in range(num_epochs):
 					
 					train_mse = 0
@@ -551,8 +551,8 @@ def main():
 
 	print("saving results ... ")
 	# diconame = os.path.join('./', outnpz)
-	diconame = '%s.%s' % (outnpz, 'npz')
-	np.savez(diconame, 
+# 	diconame = '%s.%s' % (args.outnpz, 'npz')
+	np.savez(args.outnpz, 
 		OptNbSample_ns=OptNbSample_ns, 
 		OptNbEpoch_ns=OptNbEpoch_ns, 
 		OptMseTrain_ns = OptMseTrain_ns,
