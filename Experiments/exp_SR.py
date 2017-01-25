@@ -192,8 +192,7 @@ def iterate_minibatches(inputs, targets, classes, batchsize, shuffle=False):
 ############## MAIN ################
 
 def main():
-	
-	parser = argparse(description ="experiments of supervision rate on dNN classifier", formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser = argparse.ArgumentParser(description="experiments of supervision rate on dNN classifier")
 	parser.add_argument("outnpz", help ="filename of the output file (warning: file will be saved as [filename].npz)")
 	parser.add_argument("-e", "--number-epoch",
 					dest="num_epochs",
