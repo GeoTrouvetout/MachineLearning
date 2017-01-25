@@ -172,7 +172,6 @@ def build_lae(input_var=None):
 	return l_out, l_outclass
 
 
-
 """
 simple copy of the function iterate_minibatches(...) of the lasagne/examples/mnist.pyo
 """
@@ -192,7 +191,7 @@ def iterate_minibatches(inputs, targets, classes, batchsize, shuffle=False):
 
 ############## MAIN ################
 
-def main( num_epochs=100, num_exp=10, prop_valid=20 ):
+def main( num_epochs=100, num_exp=10, prop_valid=20, size_minibatch = 1000 ):
 
 	print("Set network")
 	input_var = T.tensor4('inputs')
@@ -357,7 +356,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 				
 				
 				#### batch TRAIN ENCODER ####
-				for batch in iterate_minibatches(X_train_ns, X_train_ns, y_train_ns, 500, shuffle=True):
+				for batch in iterate_minibatches(X_train_ns, X_train_ns, y_train_ns, size_minibatch, shuffle=True):
 					inputs, targets, classes = batch
 					train_mse += train_fn_enc( inputs, targets )
 					train_batches += 1
@@ -367,7 +366,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 					MseTrain = (train_mse / train_batches)
 
 				#### batch VALID ENCODER ####
-				for batch in iterate_minibatches(X_val_ns, X_val_ns, y_val_ns, 500, shuffle=True):
+				for batch in iterate_minibatches(X_val_ns, X_val_ns, y_val_ns, size_minibatch, shuffle=True):
 					inputs, targets, classes = batch
 					val_mse += val_fn_enc(inputs, targets)
 					val_batches += 1
@@ -375,10 +374,16 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 				MseVal = 0
 				if val_batches != 0: 
 					MseVal = (val_mse / val_batches)
-				
-				print("Epoch :", e_ns + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
-				print("\t training recons MSE:\t\t{:.6f} ".format( MseTrain ) )
+				t = time.time() - overall_time
+# 				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, ((t - 3600*(t//3600)) - 60*(t - (3600*(t//3600)))//60)
+				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
+				print("-----UnSupervised-----")
+				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
+				print("")	
+				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn:%d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+				print("\t training recons MSE:\t{:.6f} ".format( MseTrain ) )
 				print("\t validation recons MSE:\t{:.6f}".format( MseVal ) )
+				print("")	
 				
 				TensorMseTrain_ns[m][n][e_ns] = MseTrain
 				TensorMseValid_ns[m][n][e_ns] = MseVal
@@ -432,7 +437,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 				
 				
 				#### batch TRAIN CLASSIFIER ####
-				for batch in iterate_minibatches(X_train_s, X_train_s, y_train_s, 500, shuffle=True):
+				for batch in iterate_minibatches(X_train_s, X_train_s, y_train_s, size_minibatch, shuffle=True):
 					inputs, targets, classes = batch
 					train_ace += train_fn_class( inputs, classes )
 					train_batches += 1
@@ -442,8 +447,8 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 				else: 
 					AceTrain = 0
 
-				#### batch VALID ENCODER ####
-				for batch in iterate_minibatches(X_val_ns, X_val_ns, y_val_ns, 500, shuffle=True):
+				#### batch VALID CLASSIFIER ####
+				for batch in iterate_minibatches(X_val_s, X_val_s, y_val_s, size_minibatch, shuffle=True):
 					inputs, targets, classes = batch
 					ace, acc = val_fn_class( inputs, classes )
 					val_ace += ace
@@ -460,12 +465,20 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 					AceVal = 0
 					AccVal = 0
 				
-				print("Epoch :", e_s + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
-				print("\t training class ACE:\t\t{:.6f} ".format( AceTrain ) )
+				t = time.time() - overall_time
+# 				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, ((t - 3600*(t//3600)) - 60*(t - (3600*(t//3600)))//60)
+				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
+				print("-----Supervised-----")
+				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
+				print("")
+				print("Epoch: ", e_s + 1, "/", num_epochs, "\tn:%d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+# 				print("Epoch :", e_s + 1, "/", num_epochs, "\tt: {:.3f}s".format( time.time() - start_time), "\tSR: {:1f}".format(prop_train_s), "%" )
+# 				print("Epoch :", e_s + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
+				print("\t training class ACE:\t{:.6f} ".format( AceTrain ) )
 				print("\t validation class ACE:\t{:.6f}".format( AceVal ) )
 				print("\t validation class MSE:\t{:.6f}".format( AceVal ) )
 				print("\t validation class ACC:\t{:.6f}".format( AceVal ) )
-				
+				print("")
 				TensorAceTrain_s[m][n][e_s] = AceTrain
 				TensorMseValid_s[m][n][e_s] = MseVal
 				TensorAceValid_s[m][n][e_s] = AceVal
@@ -487,7 +500,7 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 			test_acc = 0
 			test_mse = 0
 			test_batches = 0
-			for batch in iterate_minibatches(X_test, X_test, y_test, 500, shuffle=True):
+			for batch in iterate_minibatches(X_test, X_test, y_test, size_minibatch, shuffle=True):
 				inputs, targets, classes = batch
 				ace, acc = val_fn_class( inputs, classes )
 				test_ace += ace
@@ -510,9 +523,9 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 			
 # 		print(s, m, n)
 			
-		
-	print("Total Time :", "\t{:.3f}s".format( time.time() - overall_time))
-	print("saving results ... ")
+	t= time.time() - overall_time
+	hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
+	print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
 # 	dico = {}
 # 	dico['TestAcc'] = ListOfListAccTest
 # 	dico['TestLoss'] = ListOfListLossTest
@@ -523,29 +536,30 @@ def main( num_epochs=100, num_exp=10, prop_valid=20 ):
 # 	dico['TrainEpochAcc'] = ListOfListOfListAccTrain
 # 	dico['TrainEpochLoss'] = ListOfListOfListLossTrain
 # 	dico['TrainEpochMse'] = ListOfListOfListMseTrain
-	diconame = os.path.join('./', 'results')
+	print("saving results ... ")
+	diconame = os.path.join('./', 'exp-supervision-rate')
 	diconame = '%s.%s' % (diconame, 'npz')
 	np.savez(diconame, 
-		OptNbSample_ns, 
-		OptMseTrain_ns,
-		OptMseValid_ns,
-		TensorMseTrain_ns,
-		TensorMseValid_ns,
-		OptNbSample_s,
-		OptAccTrain_s, 
-		OptAceTrain_s, 
-		OptMseValid_s, 
-		OptAccValid_s, 
-		OptAceValid_s, 
+		OptNbSample_ns=OptNbSample_ns, 
+		OptMseTrain_ns = OptMseTrain_ns,
+		OptMseValid_ns=OptMseValid_ns,
+		TensorMseTrain_ns=TensorMseTrain_ns,
+		TensorMseValid_ns=TensorMseValid_ns,
+		OptNbSample_s=OptNbSample_s,
+		OptAccTrain_s=OptAccTrain_s, 
+		OptAceTrain_s=OptAceTrain_s, 
+		OptMseValid_s=OptMseValid_s, 
+		OptAccValid_s = OptAccValid_s, 
+		OptAceValid_s = OptAceValid_s, 
 # 		TensorMseTrain_s,
-		TensorMseValid_s,
-		TensorAceTrain_s,
-		TensorAceValid_s,
+		TensorMseValid_s = TensorMseValid_s,
+		TensorAceTrain_s = TensorAceTrain_s,
+		TensorAceValid_s = TensorAceValid_s,
 # 		TensorAccTrain_s,
-		TensorAccValid_s,
-		ArrayAccTest, 
-		ArrayAceTest,  
-		ArrayMseTest)
+		TensorAccValid_s = TensorAccValid_s,
+		ArrayAccTest = ArrayAccTest, 
+		ArrayAceTest = ArrayAceTest,  
+		ArrayMseTest = ArrayMseTest)
 # 	write_model_data(network_enc, 'network_enc')
 # 	write_model_data(network_class, 'network_class')
 	
