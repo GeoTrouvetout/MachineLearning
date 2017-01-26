@@ -63,7 +63,8 @@ def load_dataset_mnist():
 		# The inputs come as bytes, we convert them to float32 in range [0,1].
 		# (Actually to range [0, 255/256], for compatibility to the version
 		# provided at http://deeplearning.net/data/mnist/mnist.pkl.gz.)
-		return data / np.float32(256)
+		return (data / np.float32(256))
+# 		return 1-(2*(data / np.float32(256)))
 
 	def load_mnist_labels(filename):
 		if not os.path.exists(filename):
@@ -103,22 +104,22 @@ def write_model_data(model, filename):
 
 def build_gcae(input_var=None):
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
-	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
+	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
 	l_pool1 = lasagne.layers.MaxPool2DLayer(l_conv1, pool_size=(2,2) )
-	l_conv2 = lasagne.layers.Conv2DLayer(l_pool1, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	l_conv2 = lasagne.layers.Conv2DLayer(l_pool1, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
 	l_pool2 = lasagne.layers.MaxPool2DLayer(l_conv2, pool_size=(2,2) )
-	l_fcenc = lasagne.layers.DenseLayer(l_pool2, num_units=512, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform())
-	l_fc = lasagne.layers.DenseLayer(l_fcenc, num_units=256, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform())
+	l_fcenc = lasagne.layers.DenseLayer(l_pool2, num_units=512, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal())
+	l_fc = lasagne.layers.DenseLayer(l_fcenc, num_units=256, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal())
 	
 	l_fcdec = lasagne.layers.DenseLayer(l_fc, num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
 	l_reshpfcdec = lasagne.layers.ReshapeLayer( l_fcdec, shape=(-1, 32, 4, 4) )
 	l_upscale1 = lasagne.layers.Upscale2DLayer(l_reshpfcdec, scale_factor=2, mode='repeat')
-	l_deconv1 = lasagne.layers.Deconv2DLayer(l_upscale1, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	l_deconv1 = lasagne.layers.Deconv2DLayer(l_upscale1, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
 	l_upscale2 = lasagne.layers.Upscale2DLayer(l_deconv1, scale_factor=2, mode='repeat')
-	l_deconv2 = lasagne.layers.Deconv2DLayer(l_upscale2, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
+	l_deconv2 = lasagne.layers.Deconv2DLayer(l_upscale2, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
 	l_out = lasagne.layers.FeaturePoolLayer(l_deconv2, 32, pool_function=theano.tensor.max )
 	
-	l_outclass = lasagne.layers.DenseLayer(l_fc, num_units=10, nonlinearity=lasagne.nonlinearities.softmax, W=lasagne.init.GlorotUniform())
+	l_outclass = lasagne.layers.DenseLayer(l_fc, num_units=10, nonlinearity=lasagne.nonlinearities.softmax, W=lasagne.init.GlorotNormal())
 	
 	
 	print(lasagne.layers.get_output_shape(l_out))
@@ -130,19 +131,19 @@ def build_lae(input_var=None):
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
 	print(lasagne.layers.get_output_shape(l_in))
 
-	network = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
+	network = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
 	print(lasagne.layers.get_output_shape(network))
 	
 	network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2,2) )
 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.Conv2DLayer( network, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	network = lasagne.layers.Conv2DLayer( network, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
 	print(lasagne.layers.get_output_shape(network))
 	
-	l_le = lasagne.layers.Conv2DLayer( network, num_filters=16, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform() )
+	l_le = lasagne.layers.Conv2DLayer( network, num_filters=16, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal() )
 	print(lasagne.layers.get_output_shape(l_le))
 	
-	network = lasagne.layers.Deconv2DLayer( l_le, num_filters=32, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	network = lasagne.layers.Deconv2DLayer( l_le, num_filters=32, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
 	print(lasagne.layers.get_output_shape(network))
 	
 # 	l_fcdec = lasagne.layers.DenseLayer(l_fc, num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
@@ -152,19 +153,20 @@ def build_lae(input_var=None):
 # 	network = lasagne.layers.Upscale2DLayer(network, scale_factor=2, mode='repeat')
 # 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.Deconv2DLayer( network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	network = lasagne.layers.Deconv2DLayer( network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
 	print(lasagne.layers.get_output_shape(network))
 	
 	network = lasagne.layers.Upscale2DLayer(network, scale_factor=2, mode='repeat')
 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.Deconv2DLayer(network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
+	network = lasagne.layers.Deconv2DLayer(network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
 	print(lasagne.layers.get_output_shape(network))
 	
 	l_out = lasagne.layers.FeaturePoolLayer(network, 32, pool_function=theano.tensor.max )
 	
-	l_mlp = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.5), num_units=256)
-	l_outclass = lasagne.layers.DenseLayer(l_mlp, num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
+	
+	l_mlp = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.2), num_units=256)
+	l_outclass = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.5), num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
 	
 	print("output class:", lasagne.layers.get_output_shape(l_outclass))
 	
@@ -197,7 +199,7 @@ def main():
 	parser.add_argument("-e", "--number-epoch",
 					dest="num_epochs",
 					type=int,
-					default=100,
+					default=10,
 					help="number of epoch",)
 	parser.add_argument("-n", "--number-experiments",
 					dest="num_exp",
@@ -214,6 +216,12 @@ def main():
 					type=int,
 					default=1000,
 					help="size of minibatch",)
+	parser.add_argument('-s', '--supervisation-rate-sequence', 
+					dest="seq_sr",
+					default=[100 ,0 ,10],
+					nargs=3,
+					help='supervisation rate sequence (in%) defau ', 
+					type=int)
 	parser.add_argument("-u", "--bypass-autoencoded", action="store_true",dest="no_ul",
 						help="bypass autoencoder (unsupervised learning)")
 	parser.set_defaults(visual=False)
@@ -275,7 +283,11 @@ def main():
 	# mnist dataset
 	print("Loading mnist data...")
 	X_train, y_train, X_test, y_test = load_dataset_mnist()
-	seqm = np.arange(100,-10, -10)
+	print(args.seq_sr)
+	srmax = args.seq_sr[0]
+	srstep = args.seq_sr[2]
+	srmin = args.seq_sr[1] - srstep 
+	seqm = np.arange(srmax, srmin, -srstep)
 	seqn = np.arange(num_exp)
 	
 	
@@ -327,7 +339,7 @@ def main():
 			y_train = y_train[T_ind]
 			
 			if prop_valid <= 0 or prop_valid>=100 :
-				print("WARNING: validation/Training proportion cannot be 0% or 100% : setting default 20%....")
+				print("!!!validation/Training proportion cannot be 0% or 100% : setting default 20%....")
 				prop_valid=20
 			
 			nb_train_s = np.floor( ( prop_train_s/100 ) * len(X_train) ).astype(int)  # part used for the supervised learning
@@ -414,7 +426,7 @@ def main():
 					print("-----UnSupervised-----")
 					print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
 					print("")	
-					print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn:%d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+					print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
 					print("\t training recons MSE:\t{:.6f} ".format( MseTrain ) )
 					print("\t validation recons MSE:\t{:.6f}".format( MseVal ) )
 					print("")	
@@ -432,11 +444,15 @@ def main():
 						params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
 						params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
 					
+# 				lasagne.layers.set_all_param_values( network_enc, params_init_network_enc )
+# 				lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 				lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
 
-			AceTrain_lowest = sys.float_info.max
-			AceVal_lowest = sys.float_info.max
+			AccTrain_highest = sys.float_info.min
+			AccVal_highest = sys.float_info.min
 			best_nbsample = 0
+			lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
+			lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 			params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
 			
 			for e_s in range(num_epochs):
@@ -492,7 +508,7 @@ def main():
 				print("-----Supervised-----")
 				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
 				print("")
-				print("Epoch: ", e_s + 1, "/", num_epochs, "\tn:%d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+				print("Epoch: ", e_s + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
 # 				print("Epoch :", e_s + 1, "/", num_epochs, "\tt: {:.3f}s".format( time.time() - start_time), "\tSR: {:1f}".format(prop_train_s), "%" )
 # 				print("Epoch :", e_s + 1, "/", num_epochs, "\t{:.3f}s".format( time.time() - start_time))
 				print("\t training class ACE:\t{:.6f} ".format( AceTrain ) )
@@ -505,8 +521,11 @@ def main():
 				TensorAceValid_s[m][n][e_s] = AceVal
 				TensorAccValid_s[m][n][e_s] = AccVal
 				
-				if AceVal < AceVal_lowest:
-					AceVal_lowest = AceVal
+# 				if AccVal > 0.9:
+# 					print("########CUT##########")
+# 					break
+				if AccVal > AccVal_highest:
+					AccVal_highest = AccVal
 					OptAceTrain_s[m][n] = AceTrain
 					OptAceValid_s[m][n] = AceVal
 					OptMseValid_s[m][n] = MseVal
@@ -542,12 +561,34 @@ def main():
 			print("\t test recons MSE:\t\t{:.6f}".format( MseTest) )
 			print("\t test class ACE:\t\t{:.6f}".format( AceTest) )
 			print("\t test class ACC:\t\t{:.2f} %".format( 100*(AccTest) ) )
+			np.savez(args.outnpz, 
+				OptNbSample_ns=OptNbSample_ns, 
+				OptNbEpoch_ns=OptNbEpoch_ns, 
+				OptMseTrain_ns = OptMseTrain_ns,
+				OptMseValid_ns=OptMseValid_ns,
+				TensorMseTrain_ns=TensorMseTrain_ns,
+				TensorMseValid_ns=TensorMseValid_ns,
+				OptNbSample_s=OptNbSample_s,
+				OptNbEpoch_s=OptNbEpoch_s, 
+				OptAccTrain_s=OptAccTrain_s, 
+				OptAceTrain_s=OptAceTrain_s, 
+				OptMseValid_s=OptMseValid_s, 
+				OptAccValid_s = OptAccValid_s, 
+				OptAceValid_s = OptAceValid_s, 
+				TensorMseValid_s = TensorMseValid_s,
+				TensorAceTrain_s = TensorAceTrain_s,
+				TensorAceValid_s = TensorAceValid_s,
+				TensorAccValid_s = TensorAccValid_s,
+				ArrayAccTest = ArrayAccTest, 
+				ArrayAceTest = ArrayAceTest,  
+				ArrayMseTest = ArrayMseTest)
+
 			
 # 		print(s, m, n)
 			
 	t= time.time() - overall_time
 	hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
-	print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
+	print("Total Time :", "\t%dh%dm%ds (%fs)" %(hours,minutes,seconds, t )  )
 
 	print("saving results ... ")
 	# diconame = os.path.join('./', outnpz)
