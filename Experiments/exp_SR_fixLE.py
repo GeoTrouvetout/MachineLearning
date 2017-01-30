@@ -102,49 +102,35 @@ def write_model_data(model, filename):
 	filename = '%s.%s' % (filename, 'npz')
 	np.savez(filename, *lasagne.layers.get_all_param_values(model))
 
-def build_gcae(input_var=None):
-	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
-	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
-	l_pool1 = lasagne.layers.MaxPool2DLayer(l_conv1, pool_size=(2,2) )
-	l_conv2 = lasagne.layers.Conv2DLayer(l_pool1, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
-	l_pool2 = lasagne.layers.MaxPool2DLayer(l_conv2, pool_size=(2,2) )
-	l_fcenc = lasagne.layers.DenseLayer(l_pool2, num_units=512, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal())
-	l_fc = lasagne.layers.DenseLayer(l_fcenc, num_units=256, nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal())
+def set_param_trainability( llayer, btrain=True ):
+	for layer in lasagne.layers.get_all_layers(llayer):
+		for param in layer.params:
+			layer.params[param].tags['trainable'] = btrain
+# 	return llayer
+# 			layer.params[param].discard('trainable')
+# 		if layer is not network_le:
+#		print(layer)
 	
-	l_fcdec = lasagne.layers.DenseLayer(l_fc, num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
-	l_reshpfcdec = lasagne.layers.ReshapeLayer( l_fcdec, shape=(-1, 32, 4, 4) )
-	l_upscale1 = lasagne.layers.Upscale2DLayer(l_reshpfcdec, scale_factor=2, mode='repeat')
-	l_deconv1 = lasagne.layers.Deconv2DLayer(l_upscale1, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
-	l_upscale2 = lasagne.layers.Upscale2DLayer(l_deconv1, scale_factor=2, mode='repeat')
-	l_deconv2 = lasagne.layers.Deconv2DLayer(l_upscale2, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
-	l_out = lasagne.layers.FeaturePoolLayer(l_deconv2, 32, pool_function=theano.tensor.max )
-	
-	l_outclass = lasagne.layers.DenseLayer(l_fc, num_units=10, nonlinearity=lasagne.nonlinearities.softmax, W=lasagne.init.GlorotNormal())
-	
-	
-	print(lasagne.layers.get_output_shape(l_out))
-	return l_out, l_outclass
-
 
 
 def build_lae(input_var=None):
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
 	print(lasagne.layers.get_output_shape(l_in))
 
-	network = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
-	print(lasagne.layers.get_output_shape(network))
+	l_c1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
+# 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2,2) )
-	print(lasagne.layers.get_output_shape(network))
+	l_c1p = lasagne.layers.MaxPool2DLayer(l_c1, pool_size=(2,2) )
+# 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.Conv2DLayer( network, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
-	print(lasagne.layers.get_output_shape(network))
+	l_c2 = lasagne.layers.Conv2DLayer( l_c1p, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
+# 	print(lasagne.layers.get_output_shape(network))
 	
-	l_le = lasagne.layers.Conv2DLayer( network, num_filters=16, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal() )
-	print(lasagne.layers.get_output_shape(l_le))
+	l_le = lasagne.layers.Conv2DLayer( l_c2, num_filters=16, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal() )
+# 	print(lasagne.layers.get_output_shape(l_le))
 	
-	network = lasagne.layers.Deconv2DLayer( l_le, num_filters=32, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
-	print(lasagne.layers.get_output_shape(network))
+	l_leu = lasagne.layers.Deconv2DLayer( l_le, num_filters=32, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
+# 	print(lasagne.layers.get_output_shape(network))
 	
 # 	l_fcdec = lasagne.layers.DenseLayer(l_fc, num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
 # 	l_reshpfcdec = lasagne.layers.ReshapeLayer( l_fcdec, shape=(-1, 32, 4, 4) )
@@ -153,25 +139,26 @@ def build_lae(input_var=None):
 # 	network = lasagne.layers.Upscale2DLayer(network, scale_factor=2, mode='repeat')
 # 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.Deconv2DLayer( network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
-	print(lasagne.layers.get_output_shape(network))
+	l_d2 = lasagne.layers.Deconv2DLayer( l_leu, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal())
+# 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.Upscale2DLayer(network, scale_factor=2, mode='repeat')
-	print(lasagne.layers.get_output_shape(network))
+	l_d2u = lasagne.layers.Upscale2DLayer( l_d2, scale_factor=2, mode='repeat')
+# 	print(lasagne.layers.get_output_shape(network))
 	
-	network = lasagne.layers.Deconv2DLayer(network, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
-	print(lasagne.layers.get_output_shape(network))
+	l_d1 = lasagne.layers.Deconv2DLayer( l_d2u, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
+# 	print(lasagne.layers.get_output_shape(network))
 	
-	l_out = lasagne.layers.FeaturePoolLayer(network, 32, pool_function=theano.tensor.max )
+	l_out = lasagne.layers.FeaturePoolLayer(l_d1, 32, pool_function=theano.tensor.max )
 	
+	l_cclass = lasagne.layers.Conv2DLayer(l_le, num_filters=10, filter_size=(8,8), nonlinearity=lasagne.nonlinearities.softmax)
 	
-	l_mlp = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.2), num_units=256)
+# 	l_outclass = lasagne.layers.FlattenLayer(l_cclass, outdim=2)
 	l_outclass = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.5), num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
 	
 	print("output class:", lasagne.layers.get_output_shape(l_outclass))
 	
-	print("output reconstruction:",lasagne.layers.get_output_shape(l_out))
-	return l_out, l_outclass
+# 	print("output reconstruction:",lasagne.layers.get_output_shape(l_out))
+	return l_out, l_outclass, l_le
 
 
 """
@@ -239,12 +226,16 @@ def main():
 	target_var = T.tensor4('targets')
 	class_var = T.ivector('classes')
 	
-	network_enc, network_class = build_lae(input_var)
+	network_enc, network_class, network_le = build_lae(input_var)
 	params_init_network_enc = lasagne.layers.get_all_param_values(network_enc)
 	params_init_network_class = lasagne.layers.get_all_param_values(network_class)
+	params_init_network_le = lasagne.layers.get_all_param_values(network_le)
 
 	print("number of params for enc",lasagne.layers.count_params(network_enc))
 	print("number params for class ",lasagne.layers.count_params(network_class))
+	print("number params for LE ",lasagne.layers.count_params(network_le))
+	
+	
 	
 	# definition of what is "train" for encoder
 	reconstruction_enc = lasagne.layers.get_output(network_enc)
@@ -333,6 +324,7 @@ def main():
 		print("learning supervision rate", prop_train_s,"%" )
 		for n in seqn:
 			print("re-initialize network parameters ... ")
+			set_param_trainability(network_le, False)
 			lasagne.layers.set_all_param_values( network_enc, params_init_network_enc )
 			lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 			
@@ -458,6 +450,8 @@ def main():
 			lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
 			lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 			params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+			
+			set_param_trainability(network_le, False)
 			
 			for e_s in range(num_epochs):
 				
