@@ -256,7 +256,7 @@ def main():
 	seg_var = T.tensor4('segmentations')
 	
 	network_recon, network_le = build_lae(input_var)
-	out_le = lasagne.layers.get_output(network_le)
+	out_le = lasagne.layers.get_output(network_le, deterministic=True)
 	network_class = build_mlp_output(out_le)
 	network_seg = build_cnn_output(out_le)
 
@@ -283,7 +283,7 @@ def main():
 	train_fn_recon = theano.function([input_var, target_var], mse_recon, updates=updates_recon)
 	
 	
-	# definition of what is "train" for classifier 
+	# definition of what is "train" for classifier
 	out_class = lasagne.layers.get_output(network_class)
 	ce_class = lasagne.objectives.categorical_crossentropy(out_class, class_var)
 	ace_class = lasagne.objectives.aggregate(ce_class)
