@@ -102,16 +102,26 @@ def write_model_data(model, filename):
 	filename = '%s.%s' % (filename, 'npz')
 	np.savez(filename, *lasagne.layers.get_all_param_values(model))
 
-def set_param_trainability( llayer, btrain=True ):
-	for layer in lasagne.layers.get_all_layers(llayer):
-		for param in layer.params:
-			layer.params[param].tags['trainable'] = btrain
+def set_param_trainability( layer, btrain=True ):
+# 	for l in lasagne.layers.get_all_layers(layer):
+# 		print(l
+# 		if layer is not InputLayer:
+		
+	if btrain:
+		layer.params[layer.W].add('trainable')
+#				layer.params[layer.b].add('trainable')
+	else:
+		layer.params[layer.W].remove('trainable')
+# 			layer.params[layer.b].remove('trainable')
+# 		for param in layer.params:
+# 			layer.params[param].tag['trainable'] = btrain
 # 	return llayer
 # 			layer.params[param].discard('trainable')
 # 		if layer is not network_le:
 #		print(layer)
 	
-
+def show_params(layer):
+	print(lasagne.layers.get_all_param_values(layer))
 
 def build_lae(input_var=None):
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
@@ -152,20 +162,21 @@ def build_lae(input_var=None):
 	
 	l_cclass = lasagne.layers.Conv2DLayer(l_le, num_filters=10, filter_size=(8,8), nonlinearity=lasagne.nonlinearities.softmax)
 	
-# 	l_outclass = lasagne.layers.FlattenLayer(l_cclass, outdim=2)
+# 	l_cclass = lasagne.layers.FlattenLayer(l_cclass, outdim=2, )
 	l_outclass = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.5), num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
 	
-	print("output class:", lasagne.layers.get_output_shape(l_outclass))
+	print("output classicl class:", lasagne.layers.get_output_shape(l_outclass))
+	print("output class:", lasagne.layers.get_output_shape(l_cclass))
 	
 # 	print("output reconstruction:",lasagne.layers.get_output_shape(l_out))
-	return l_out, l_outclass, l_le
+	return l_out, l_cclass, l_le
 
 
 """
 simple copy of the function iterate_minibatches(...) of the lasagne/examples/mnist.pyo
 """
 
-def iterate_minibatches(inputs, targets, classes, batchsize, shuffle=False):
+def iterate_minibatches(inputs, targets, classes, tclasses, batchsize, shuffle=False):
 	assert len(inputs) == len(targets)
 	if shuffle:
 		indices = np.arange(len(inputs))
@@ -175,7 +186,7 @@ def iterate_minibatches(inputs, targets, classes, batchsize, shuffle=False):
 			excerpt = indices[start_idx:start_idx + batchsize]
 		else:
 			excerpt = slice(start_idx, start_idx + batchsize)
-		yield inputs[excerpt], targets[excerpt], classes[excerpt]
+		yield inputs[excerpt], targets[excerpt], classes[excerpt], tclasses[excerpt]
 
 
 ############## MAIN ################
@@ -225,6 +236,7 @@ def main():
 	input_var = T.tensor4('inputs')
 	target_var = T.tensor4('targets')
 	class_var = T.ivector('classes')
+	tclass_var = T.tensor4('tclasses')
 	
 	network_enc, network_class, network_le = build_lae(input_var)
 	params_init_network_enc = lasagne.layers.get_all_param_values(network_enc)
@@ -257,7 +269,13 @@ def main():
 	
 	train_fn_class = theano.function([input_var, class_var], ace_class, updates=updates_class)
 	
-	
+	# definition of what is "train" for classifier with CNN fixed
+	prediction_class = lasagne.layers.get_output(network_class)
+	ce_class = lasagne.objectives.categorical_crossentropy(prediction_class, class_var)
+	ace_class = lasagne.objectives.aggregate(ce_class)
+	params_le = lasagne.layers.get_all_params(network_le, trainable=False)
+	updates_class = lasagne.updates.nesterov_momentum(ace_class, params_class, learning_rate=0.1, momentum=0.9)
+		
 	test_class_prediction = lasagne.layers.get_output(network_class, deterministic=True)
 
 	
@@ -278,6 +296,7 @@ def main():
 	# mnist dataset
 	print("Loading mnist data...")
 	X_train, y_train, X_test, y_test = load_dataset_mnist()
+	Y_train = 
 	print(args.seq_sr)
 	srmax = args.seq_sr[0]
 	srstep = args.seq_sr[2]
@@ -324,10 +343,14 @@ def main():
 		print("learning supervision rate", prop_train_s,"%" )
 		for n in seqn:
 			print("re-initialize network parameters ... ")
-			set_param_trainability(network_le, False)
+			set_param_trainability(network_le, True)
 			lasagne.layers.set_all_param_values( network_enc, params_init_network_enc )
 			lasagne.layers.set_all_param_values( network_class, params_init_network_class )
-			
+			print("#######")
+# 			show_params(network_le)
+# 			show_params(network_class)
+			print("#######")
+				
 			print("experiment:", n+1, "/", len(seqn))
 			T_ind = np.arange(len(y_train))
 			np.random.shuffle(T_ind)
@@ -451,6 +474,7 @@ def main():
 			lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 			params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
 			
+			Wle = lasagne.layers.get_all_param_values(network_le)
 			set_param_trainability(network_le, False)
 			
 			for e_s in range(num_epochs):
@@ -481,7 +505,16 @@ def main():
 					AceTrain = (train_ace / train_batches)
 				else: 
 					AceTrain = 0
-
+				
+				Wle_1 = lasagne.layers.get_all_param_values(network_le)
+				for i in range(len(Wle_1)):
+					if np.array_equal(Wle, Wle_1):
+						print("OK")
+					else:
+						print("###############################")
+				print("")
+						
+						
 				#### batch VALID CLASSIFIER ####
 				for batch in iterate_minibatches(X_val_s, X_val_s, y_val_s, size_minibatch, shuffle=True):
 					inputs, targets, classes = batch
