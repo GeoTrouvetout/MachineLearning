@@ -425,8 +425,8 @@ def main():
 			###############
 			# iteration over epochs:
 			training_time = time.time()
-			MseTrain_lowest = sys.float_info.max
-			MseVal_lowest = sys.float_info.max
+			MseReconTrain_lowest = sys.float_info.max
+			MseReconVal_lowest = sys.float_info.max
 			best_nbsample = 0
 			params_nn_ns_best = lasagne.layers.get_all_param_values(network_recon)
 # 			if not args.no_ul:
@@ -454,7 +454,7 @@ def main():
 				
 				MseReconTrain = 0
 				if train_batches != 0: 
-					MseTrain = (train_recon_mse / train_batches)
+					MseReconTrain = (train_recon_mse / train_batches)
 
 # 					#### batch VALID ENCODER ####
 				for batch in iterate_minibatches(X_valid_ns, X_valid_ns, y_valid_ns, Y_valid_ns, size_minibatch, shuffle=True):
@@ -464,7 +464,7 @@ def main():
 				
 				MseReconVal = 0
 				if val_batches != 0: 
-					MseVal = (val_recon_mse / val_batches)
+					MseReconVal = (val_recon_mse / val_batches)
 				t = time.time() - overall_time
 				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
 				print("-----UnSupervised-----")
@@ -475,25 +475,25 @@ def main():
 				print("\t validation recons MSE:\t{:.6f}".format( MseReconVal ) )
 				print("")	
 				
-# 					TensorMseTrain_ns[m][n][e_ns] = MseReconTrain
-# 					TensorMseValid_ns[m][n][e_ns] = MseReconVal
+				TensorMseTrain_ns[m][n][e_ns] = MseReconTrain
+				TensorMseValid_ns[m][n][e_ns] = MseReconVal
 					
-# 					if MseVal < MseVal_lowest:
-# 						MseVal_lowest = MseVal
-# 						OptMseTrain_ns[m][n] = MseReconsVal
-# 						OptMseTrain_ns[m][n] = MseReconsTrain
-# 						OptNbSample_ns[m][n] = e_ns * len(X_train_ns)
-# 						OptNbEpoch_ns[m][n] = e_ns
-# 						params_nn_ns_best = lasagne.layers.get_all_param_values(network_recon)
-# 						# params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+				if MseReconVal < MseReconVal_lowest:
+					MseReconVal_lowest = MseReconVal
+					OptMseTrain_ns[m][n] = MseReconsVal
+					OptMseTrain_ns[m][n] = MseReconsTrain
+					OptNbSample_ns[m][n] = e_ns * len(X_train_ns)
+					OptNbEpoch_ns[m][n] = e_ns
+					params_nn_ns_best = lasagne.layers.get_all_param_values(network_recon)
+					# params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
 					
-# 				# lasagne.layers.set_all_param_values( network_enc, params_init_network_enc )
+				# lasagne.layers.set_all_param_values( network_enc, params_init_network_enc )
 # 				# lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 # # 				lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
 
-# 			AccTrain_highest = sys.float_info.min
-# 			AccVal_highest = sys.float_info.min
-# 			best_nbsample = 0
+			AccTrain_highest = sys.float_info.min
+			AccVal_highest = sys.float_info.min
+			best_nbsample = 0
 # 			lasagne.layers.set_all_param_values( network_recon, params_nn_ns_best )
 # 			# lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 # 			params_nn_s_best = lasagne.layers.get_all_param_values(network_class)

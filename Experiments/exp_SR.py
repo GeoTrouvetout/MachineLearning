@@ -482,11 +482,14 @@ def main():
 					inputs, targets, classes = batch
 					train_ace += train_fn_class( inputs, classes )
 					train_batches += 1
+					#overwrite weights of encoder
+					lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
 				
 				if train_batches != 0: 
 					AceTrain = (train_ace / train_batches)
 				else: 
 					AceTrain = 0
+
 
 				#### batch VALID CLASSIFIER ####
 				for batch in iterate_minibatches(X_val_s, X_val_s, y_val_s, size_minibatch, shuffle=True):
