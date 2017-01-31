@@ -278,6 +278,8 @@ def main():
 
 	### results for NS training ###
 	OptNbSample_ns = np.zeros ( [len(seqm), len(seqn)] )
+	OptNbEpoch_ns = np.zeros ( [len(seqm), len(seqn)] )
+
 	OptMseTrain_ns = np.zeros ( [len(seqm), len(seqn)] )
 	OptMseValid_ns = np.zeros ( [len(seqm), len(seqn)] )
 	TensorMseTrain_ns = np.zeros( [len(seqm), len(seqn), num_epochs] )
@@ -285,6 +287,8 @@ def main():
 
 	### results for S training ###
 	OptNbSample_s = np.zeros ( [len(seqm), len(seqn)] )
+	OptNbEpoch_s = np.zeros ( [len(seqm), len(seqn)] )
+
 	OptAccTrain_s = np.zeros( [len(seqm), len(seqn)] ) 
 	OptAceTrain_s = np.zeros( [len(seqm), len(seqn)] ) 
 	OptMseValid_s = np.zeros( [len(seqm), len(seqn)] ) 
@@ -333,8 +337,7 @@ def main():
 			
 			nb_valid_s = np.floor( (prop_valid/100)* len(X_train_s) ).astype(int)
 			nb_valid_ns = np.floor( (prop_valid/100)* len(X_train_ns) ).astype(int)
-# 			print("nb_valid_s", nb_valid_s )
-# 			print("nb_valid_ns", nb_valid_ns )
+
 			if nb_valid_s !=0:
 				# train/validation split
 				X_train_s, X_val_s = X_train_s[:-nb_valid_s], X_train_s[-nb_valid_s:]
@@ -343,8 +346,7 @@ def main():
 				X_val_s, X_train_s = X_train_s[:-nb_valid_s], X_train_s[-nb_valid_s:]
 				y_val_s, y_train_s = y_train_s[:-nb_valid_s], y_train_s[-nb_valid_s:]
 			print("number images for supervised learning (train/val):", nb_train_s , "(", len(X_train_s), "/", len(X_val_s),")")
-# 			print("number images for non-supervised learning (train/val):", len(X_train_ns) )
-# 			print("Split supervised Train/Val:", len(X_train_s), "/", len(X_val_s) )
+
 		
 			if nb_valid_ns !=0:
 				# train/validation split
@@ -354,7 +356,7 @@ def main():
 				X_val_ns, X_train_ns = X_train_ns[:-nb_valid_ns], X_train_ns[-nb_valid_ns:]
 				y_val_ns, y_train_ns = y_train_ns[:-nb_valid_ns], y_train_ns[-nb_valid_ns:]
 			print("number images for non-supervised learning (train/val):", nb_train_ns , "(", len(X_train_ns), "/", len(X_val_ns),")")
-# 			print("Split non-supervised Train/Val:", len(X_train_ns), "/", len(X_val_ns))
+
 			
 			
 # 			print(len(X_train_class), len(X_train_enc))
@@ -367,80 +369,68 @@ def main():
 			best_nbsample = 0
 			params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
 			
-# 			for e_ns in range(num_epochs):
-# 				
-# 				train_mse = 0
-# 				train_batches = 0
-# 				val_mse = 0
-# 				val_batches = 0
-# 				start_time = time.time()
-# 				
-# 				### shuffle indices of train/valid data
-# 				
-# 				ind_train_ns = np.arange( len(y_train_ns) )
-# 				np.random.shuffle( ind_train_ns )
-# 				X_train_ns = X_train_ns[ ind_train_ns ]
-# 				y_train_ns = y_train_ns[ ind_train_ns ]
-# 				
-# 				
-# 				#### batch TRAIN ENCODER ####
-# 				for batch in iterate_minibatches(X_train_ns, X_train_ns, y_train_ns, size_minibatch, shuffle=True):
-# 					inputs, targets, classes = batch
-# 					train_mse += train_fn_enc( inputs, targets )
-# 					train_batches += 1
-# 				
-# 				MseTrain = 0
-# 				if train_batches != 0: 
-# 					MseTrain = (train_mse / train_batches)
-# 
-# 				#### batch VALID ENCODER ####
-# 				for batch in iterate_minibatches(X_val_ns, X_val_ns, y_val_ns, size_minibatch, shuffle=True):
-# 					inputs, targets, classes = batch
-# 					val_mse += val_fn_enc(inputs, targets)
-# 					val_batches += 1
-# 				
-# 				MseVal = 0
-# 				if val_batches != 0: 
-# 					MseVal = (val_mse / val_batches)
-# 				t = time.time() - overall_time
-# # 				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, ((t - 3600*(t//3600)) - 60*(t - (3600*(t//3600)))//60)
-# 				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
-# 				print("-----UnSupervised-----")
-# 				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
-# 				print("")	
-# 				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn:%d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
-# 				print("\t training recons MSE:\t{:.6f} ".format( MseTrain ) )
-# 				print("\t validation recons MSE:\t{:.6f}".format( MseVal ) )
-# 				print("")	
-# 				
-# 				TensorMseTrain_ns[m][n][e_ns] = MseTrain
-# 				TensorMseValid_ns[m][n][e_ns] = MseVal
-# 				
-# 				if MseVal < MseVal_lowest:
-# 					MseVal_lowest = MseVal
-# 					OptMseTrain_ns[m][n] = MseVal
-# 					OptMseTrain_ns[m][n] = MseTrain
-# 					OptNbSample_ns[m][n] = e_ns * len(X_train_ns)
-# 					params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
-# 					params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
-# 				
-# # 				ListOfListOfListLossTrain[m][n][e_ns] = LossTrain
-# # 				ListOfListOfListAccTrain[m][n][e_ns] = AccTrain
-# # 				print("\t training class loss:\t\t{:.6f} ".format( LossTrain ) )
-# # 				print("\t training class acc:\t\t{:.2f} %".format( 100*( AccTrain ) ) )		
-# 				
-# 				
-# # 				print("")
-# # 				print("\t validation class loss:\t\t{:.6f}".format(val_err_class / val_batches) )
-# # 				print("\t validation class acc:\t\t{:.2f} %".format( 100*(val_acc_class / val_batches) ) )		
-# 				
-# # 				ListOfListOfListMseValid[m][n][epoch] = val_err_enc / val_batches
-# # 				ListOfListOfListLossValid[m][n][epoch] = val_err_class / val_batches
-# # 				ListOfListOfListAccValid[m][n][epoch] = val_acc_class / val_batches
-# 			
-# 				
-# 			lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
-# 
+			for e_ns in range(num_epochs):
+				
+				train_mse = 0
+				train_batches = 0
+				val_mse = 0
+				val_batches = 0
+				start_time = time.time()
+				
+				### shuffle indices of train/valid data
+				
+				ind_train_ns = np.arange( len(y_train_ns) )
+				np.random.shuffle( ind_train_ns )
+				X_train_ns = X_train_ns[ ind_train_ns ]
+				y_train_ns = y_train_ns[ ind_train_ns ]
+				
+				
+				#### batch TRAIN ENCODER ####
+				for batch in iterate_minibatches(X_train_ns, X_train_ns, y_train_ns, size_minibatch, shuffle=True):
+					inputs, targets, classes = batch
+					train_mse += train_fn_enc( inputs, targets )
+					train_batches += 1
+				
+				MseTrain = 0
+				if train_batches != 0: 
+					MseTrain = (train_mse / train_batches)
+
+				#### batch VALID ENCODER ####
+				for batch in iterate_minibatches(X_val_ns, X_val_ns, y_val_ns, size_minibatch, shuffle=True):
+					inputs, targets, classes = batch
+					val_mse += val_fn_enc(inputs, targets)
+					val_batches += 1
+				
+				MseVal = 0
+				if val_batches != 0: 
+					MseVal = (val_mse / val_batches)
+				t = time.time() - overall_time
+				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
+				print("-----UnSupervised-----")
+				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
+				print("")	
+				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn:%d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+				print("\t training recons MSE:\t{:.6f} ".format( MseTrain ) )
+				print("\t validation recons MSE:\t{:.6f}".format( MseVal ) )
+				print("")	
+				
+				TensorMseTrain_ns[m][n][e_ns] = MseTrain
+				TensorMseValid_ns[m][n][e_ns] = MseVal
+				
+				if MseVal < MseVal_lowest:
+					MseVal_lowest = MseVal
+					OptMseTrain_ns[m][n] = MseVal
+					OptMseTrain_ns[m][n] = MseTrain
+					OptNbSample_ns[m][n] = e_ns * len(X_train_ns)
+					OptNbEpoch_ns[m][n] = e_ns
+
+					params_nn_ns_best = lasagne.layers.get_all_param_values(network_enc)
+					params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+				
+			
+				
+			lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
+
 			AceTrain_lowest = sys.float_info.max
 			AceVal_lowest = sys.float_info.max
 			best_nbsample = 0
@@ -519,6 +509,7 @@ def main():
 					OptMseValid_s[m][n] = MseVal
 					OptAccValid_s[m][n] = AccVal
 					OptNbSample_s[m][n] = e_s * len(X_train_s)
+					OptNbEpoch_s[m][n] = e_s
 					params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
 					
 			
@@ -554,40 +545,32 @@ def main():
 	t= time.time() - overall_time
 	hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
 	print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
-# 	dico = {}
-# 	dico['TestAcc'] = ListOfListAccTest
-# 	dico['TestLoss'] = ListOfListLossTest
-# 	dico['TestMse'] = ListOfListMseTest
-# 	dico['ValEpochAcc'] = ListOfListOfListAccValid
-# 	dico['ValEpochLoss'] = ListOfListOfListLossValid
-# 	dico['ValEpochMse'] = ListOfListOfListMseValid
-# 	dico['TrainEpochAcc'] = ListOfListOfListAccTrain
-# 	dico['TrainEpochLoss'] = ListOfListOfListLossTrain
-# 	dico['TrainEpochMse'] = ListOfListOfListMseTrain
+
 	print("saving results ... ")
 	diconame = os.path.join('./', 'exp-supervision-rate-without_ns')
 	diconame = '%s.%s' % (diconame, 'npz')
 	np.savez(diconame, 
 		OptNbSample_ns=OptNbSample_ns, 
+		OptNbEpoch_ns=OptNbEpoch_ns, 
 		OptMseTrain_ns = OptMseTrain_ns,
 		OptMseValid_ns=OptMseValid_ns,
 		TensorMseTrain_ns=TensorMseTrain_ns,
 		TensorMseValid_ns=TensorMseValid_ns,
 		OptNbSample_s=OptNbSample_s,
+		OptNbEpoch_s=OptNbEpoch_s, 
 		OptAccTrain_s=OptAccTrain_s, 
 		OptAceTrain_s=OptAceTrain_s, 
 		OptMseValid_s=OptMseValid_s, 
 		OptAccValid_s = OptAccValid_s, 
 		OptAceValid_s = OptAceValid_s, 
-# 		TensorMseTrain_s,
 		TensorMseValid_s = TensorMseValid_s,
 		TensorAceTrain_s = TensorAceTrain_s,
 		TensorAceValid_s = TensorAceValid_s,
-# 		TensorAccTrain_s,
 		TensorAccValid_s = TensorAccValid_s,
 		ArrayAccTest = ArrayAccTest, 
 		ArrayAceTest = ArrayAceTest,  
 		ArrayMseTest = ArrayMseTest)
+	
 # 	write_model_data(network_enc, 'network_enc')
 # 	write_model_data(network_class, 'network_class')
 	
