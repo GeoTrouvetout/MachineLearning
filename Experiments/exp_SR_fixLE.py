@@ -132,23 +132,11 @@ def write_model_data(model, filename):
 	np.savez(filename, *lasagne.layers.get_all_param_values(model))
 
 def set_param_trainability( layer, btrain=True ):
-# 	for l in lasagne.layers.get_all_layers(layer):
-# 		print(l
-# 		if layer is not InputLayer:
-		
 	if btrain:
 		layer.params[layer.W].add('trainable')
-#				layer.params[layer.b].add('trainable')
 	else:
 		layer.params[layer.W].remove('trainable')
-# 			layer.params[layer.b].remove('trainable')
-# 		for param in layer.params:
-# 			layer.params[param].tag['trainable'] = btrain
-# 	return llayer
-# 			layer.params[param].discard('trainable')
-# 		if layer is not network_le:
-#		print(layer)
-	
+
 def show_params(layer):
 	print(lasagne.layers.get_all_param_values(layer))
 
@@ -318,7 +306,7 @@ def main():
 	eval_recon = theano.function([input_var, target_var], reconstruction_mse)
 	eval_class = theano.function([out_le, class_var], [classification_ace, classification_acc] )
 	eval_seg = theano.function([out_le, seg_var], segmentation_mse )
-	
+	eval_le = theano.function([input_var], out_le )
 	
 	overall_time = time.time()
 	# mnist dataset
@@ -532,12 +520,13 @@ def main():
 				#### batch TRAIN CLASSIFIER ####
 				for batch in iterate_minibatches(X_train_s, X_train_s, y_train_s, Y_train_s, size_minibatch, shuffle=True):
 					inputs, targets, classes, segmentations = batch
-					train_class_ace += train_fn_class( inputs, classes )
+					le = eval_le( inputs )
+					train_class_ace += train_fn_class( le, classes )
 					train_batches += 1
 				
 				AceClassTrain = 0
 				if train_batches != 0: 
-					MseReconTrain = (train_train_ace / train_batches)
+					MseReconTrain = (train_class_ace / train_batches)
 
 				#### batch VALID CLASSIFIER ####
 				for batch in iterate_minibatches(X_valid_s, X_valid_s, y_valid_s, Y_valid_s, size_minibatch, shuffle=True):
