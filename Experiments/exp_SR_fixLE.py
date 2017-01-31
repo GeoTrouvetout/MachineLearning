@@ -359,11 +359,11 @@ def main():
 
 	OptAccTrain_s = np.zeros( [len(seqm), len(seqn)] ) 
 	OptAceTrain_s = np.zeros( [len(seqm), len(seqn)] ) 
-	OptMseValid_s = np.zeros( [len(seqm), len(seqn)] ) 
+# 	OptMseValid_s = np.zeros( [len(seqm), len(seqn)] ) 
 	OptAccValid_s = np.zeros( [len(seqm), len(seqn)] ) 
 	OptAceValid_s = np.zeros( [len(seqm), len(seqn)] ) 
 # 	TensorMseTrain_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
-	TensorMseValid_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
+# 	TensorMseValid_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
 	TensorAceTrain_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
 	TensorAceValid_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
 # 	TensorAccTrain_s = np.zeros( [len(seqm), len(seqn), num_epochs] )
@@ -480,8 +480,8 @@ def main():
 					
 				if MseReconVal < MseReconVal_lowest:
 					MseReconVal_lowest = MseReconVal
-					OptMseTrain_ns[m][n] = MseReconsVal
-					OptMseTrain_ns[m][n] = MseReconsTrain
+					OptMseTrain_ns[m][n] = MseReconTrain
+					OptMseValid_ns[m][n] = MseReconVal
 					OptNbSample_ns[m][n] = e_ns * len(X_train_ns)
 					OptNbEpoch_ns[m][n] = e_ns
 					params_nn_ns_best = lasagne.layers.get_all_param_values(network_recon)
@@ -494,31 +494,92 @@ def main():
 			AccTrain_highest = sys.float_info.min
 			AccVal_highest = sys.float_info.min
 			best_nbsample = 0
-# 			lasagne.layers.set_all_param_values( network_recon, params_nn_ns_best )
+			
+			lasagne.layers.set_all_param_values( network_recon, params_nn_ns_best )
+			
+			
 # 			# lasagne.layers.set_all_param_values( network_class, params_init_network_class )
 # 			params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
 			
 # # 			set_param_trainability(network_le, False)
 			
-# 			for e_s in range(num_epochs):
+			for e_s in range(num_epochs):
 				
-# 				train_class_ace= 0
-# 				val_class_ace = 0
-# 				val_class_acc = 0
-# 				# val_mse = 0
-# 				train_batches = 0
-# 				val_batches = 0
-# 				start_time = time.time()
+				train_class_ace= 0
+				val_class_ace = 0
+				val_class_acc = 0
+				# val_mse = 0
+				train_batches = 0
+				val_batches = 0
+				start_time = time.time()
 				
 				### shuffle indices of train/valid data
+				print("experiment:", n+1, "/", len(seqn))
+				T_ind = np.arange(len(y_train))
+				np.random.shuffle(T_ind)
+				X = X_train[T_ind]
+				y = y_train[T_ind]
+				Y = Y_train[T_ind]
+					
+				### shuffle indices of train/valid data
+					
+				ind_train_s = np.arange( len(y_train_s) )
+				np.random.shuffle( ind_train_s )
+				X_train_s = X_train_s[ ind_train_s ]
+				y_train_s = y_train_s[ ind_train_s ]
+				Y_train_s = Y_train_s[ ind_train_s ]
 				
-# 				ind_train_s = np.arange( len(y_train_s) )
-# 				np.random.shuffle( ind_train_s )
-# 				X_train_s = X_train_s[ ind_train_s ]
-# 				y_train_s = y_train_s[ ind_train_s ]
+				#### batch TRAIN CLASSIFIER ####
+				for batch in iterate_minibatches(X_train_s, X_train_s, y_train_s, Y_train_s, size_minibatch, shuffle=True):
+					inputs, targets, classes, segmentations = batch
+					train_class_ace += train_fn_class( inputs, classes )
+					train_batches += 1
 				
+				AceClassTrain = 0
+				if train_batches != 0: 
+					MseReconTrain = (train_train_ace / train_batches)
+
+				#### batch VALID CLASSIFIER ####
+				for batch in iterate_minibatches(X_valid_s, X_valid_s, y_valid_s, Y_valid_s, size_minibatch, shuffle=True):
+					inputs, targets, classes, segmentations = batch
+					ace, acc = eval_class(inputs, classes)
+					val_class_ace += ace
+					val_class_acc += acc
+					val_batches += 1
 				
-# 				#### batch TRAIN CLASSIFIER ####
+				AceClassVal = 0
+				AccClassVal = 0
+				if val_batches != 0: 
+					AceClassVal = (val_class_ace / val_batches)
+					AccClassVal = (val_class_acc/ val_batches)
+				
+				t = time.time() - overall_time
+				
+				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
+				print("-----Supervised-----")
+				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
+				print("")	
+				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+				print("\t training class ACE:\t{:.6f} ".format( AceClassTrain ) )
+				print("\t validation class ACE:\t{:.6f} ".format( AceClassVal ) )
+				print("\t validation class ACC:\t{:.6f}".format( AccClassVal ) )
+				print("")	
+				
+				TensorAceValid_s[m][n][e_s] = AceClassVal
+				TensorAccValid_s[m][n][e_s] = AccClassVal
+					
+				if AccClassVal > AccVal_highest:
+					AccVal_highest = AccClassVal
+					OptAceTrain_s[m][n] = AceClassTrain
+					OptAceValid_s[m][n] = AceClassVal
+					OptAccValid_s[m][n] = AccClassVal
+					OptNbSample_s[m][n] = e_s * len(X_train_ns)
+					OptNbEpoch_s[m][n] = e_s
+					params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+					# params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+			
+				
+				#### batch TRAIN CLASSIFIER ####
 # 				for batch in iterate_minibatches(X_train_s, X_train_s, y_train_s, size_minibatch, shuffle=True):
 # 					inputs, targets, classes = batch
 # 					train_ace += train_fn_class( inputs, classes )
