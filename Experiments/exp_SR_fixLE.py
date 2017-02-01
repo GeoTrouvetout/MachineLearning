@@ -140,6 +140,22 @@ def set_param_trainability( layer, btrain=True ):
 def show_params(layer):
 	print(lasagne.layers.get_all_param_values(layer))
 
+def build_cnn(input_var=None):
+	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
+	# print(lasagne.layers.get_output_shape(l_in))
+	l_c1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
+	l_c1p = lasagne.layers.MaxPool2DLayer(l_c1, pool_size=(2,2) )
+	l_c2 = lasagne.layers.Conv2DLayer( l_c1p, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal() )
+	l_le = lasagne.layers.Conv2DLayer( l_c2, num_filters=16, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotNormal() )
+	
+	# l_cclass = lasagne.layers.FlattenLayer(l_cclass, outdim=2, )
+	l_outclass = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.5), num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
+	
+	# print("output class:", lasagne.layers.get_output_shape(l_cclass))
+	
+	# print("output reconstruction:",lasagne.layers.get_output_shape(l_out))
+	return l_outclass
+
 
 def build_lae(input_var=None):
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
@@ -158,14 +174,16 @@ def build_lae(input_var=None):
 	# l_cclass = lasagne.layers.FlattenLayer(l_cclass, outdim=2, )
 	# l_outclass = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.5), num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
 	
-	# print("output class:", lasagne.layers.get_output_shape(l_cclass))
+	print("output LE:", lasagne.layers.get_output_shape(l_le))
 	
-	# print("output reconstruction:",lasagne.layers.get_output_shape(l_out))
+	print("output reconstruction:",lasagne.layers.get_output_shape(l_out))
 	return l_out, l_le
 
 def build_mlp_output(input_var=None):
 	l_le = lasagne.layers.InputLayer(shape=(None, 16, 8, 8), input_var=input_var)
 	l_outclass = lasagne.layers.DenseLayer(l_le, num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
+	print("input classifier:",lasagne.layers.get_output_shape(l_le))
+	print("output classifier:",lasagne.layers.get_output_shape(l_outclass))
 	return l_outclass
 
 def build_cnn_output(input_var=None):
@@ -175,6 +193,7 @@ def build_cnn_output(input_var=None):
 	l_d2u = lasagne.layers.Upscale2DLayer( l_d2, scale_factor=2, mode='repeat')
 	l_d1 = lasagne.layers.Deconv2DLayer( l_d2u, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
 	l_outseg = lasagne.layers.FeaturePoolLayer( l_d1, 32, pool_function=theano.tensor.max )
+	print("output segmentation:",lasagne.layers.get_output_shape(l_outseg))
 	return l_outseg
 
 """
@@ -461,7 +480,7 @@ def main():
 				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
 				print("\t training recons MSE:\t{:.6f} ".format( MseReconTrain ) )
 				print("\t validation recons MSE:\t{:.6f}".format( MseReconVal ) )
-				print("")	
+				print("")
 				
 				TensorMseTrain_ns[m][n][e_ns] = MseReconTrain
 				TensorMseValid_ns[m][n][e_ns] = MseReconVal
@@ -526,12 +545,14 @@ def main():
 				
 				AceClassTrain = 0
 				if train_batches != 0: 
-					MseReconTrain = (train_class_ace / train_batches)
+					AceClassTrain = (train_class_ace / train_batches)
+				print("#######")
 
 				#### batch VALID CLASSIFIER ####
 				for batch in iterate_minibatches(X_valid_s, X_valid_s, y_valid_s, Y_valid_s, size_minibatch, shuffle=True):
 					inputs, targets, classes, segmentations = batch
-					ace, acc = eval_class(inputs, classes)
+					le = eval_le( inputs )
+					ace, acc = eval_class( le, classes)
 					val_class_ace += ace
 					val_class_acc += acc
 					val_batches += 1
@@ -551,7 +572,8 @@ def main():
 				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
 				print("\t training class ACE:\t{:.6f} ".format( AceClassTrain ) )
 				print("\t validation class ACE:\t{:.6f} ".format( AceClassVal ) )
-				print("\t validation class ACC:\t{:.6f}".format( AccClassVal ) )
+# 				print("\t validation class ACC:\t{:.6f}".format( AccClassVal ) )
+				print("\t validation class ACC:\t{:.2f}%".format( 100*(AccClassVal) )  )
 				print("")	
 				
 				TensorAceValid_s[m][n][e_s] = AceClassVal
