@@ -177,8 +177,8 @@ def build_lae(input_var=None):
 	l_d2u = lasagne.layers.Upscale2DLayer( l_d2, scale_factor=2, mode='repeat')
 	l_d1 = lasagne.layers.Deconv2DLayer( l_d2u, 32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotNormal() )
 	l_out = lasagne.layers.FeaturePoolLayer( l_d1, 32, pool_function=theano.tensor.max )
-	l_cclass = lasagne.layers.Conv2DLayer( l_le, num_filters=10, filter_size=(8,8), nonlinearity=lasagne.nonlinearities.softmax )
-	
+# 	l_cclass = lasagne.layers.Conv2DLayer( l_le, num_filters=10, filter_size=(8,8), nonlinearity=lasagne.nonlinearities.softmax )
+
 	# l_cclass = lasagne.layers.FlattenLayer(l_cclass, outdim=2, )
 	# l_outclass = lasagne.layers.DenseLayer(lasagne.layers.dropout(l_le, p=0.5), num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
 	
@@ -189,6 +189,7 @@ def build_lae(input_var=None):
 
 def build_mlp_output(input_var=None):
 	l_le = lasagne.layers.InputLayer(shape=(None, 16, 8, 8), input_var=input_var)
+# 	l_h = lasagne.layers.DenseLayer(l_le, num_units=100, nonlinearity=lasagne.nonlinearities.sigmoid)
 	l_outclass = lasagne.layers.DenseLayer(l_le, num_units=10, nonlinearity=lasagne.nonlinearities.softmax)
 	print("input classifier:",lasagne.layers.get_output_shape(l_le))
 	print("output classifier:",lasagne.layers.get_output_shape(l_outclass))
@@ -278,7 +279,7 @@ def main():
 	network_mlp = build_mlp(input_var)
 	network_cnn = build_cnn(input_var)
 	network_recon, network_le = build_lae(input_var)
-	out_le = lasagne.layers.get_output(network_le, deterministic=True)
+	out_le = lasagne.layers.get_output( network_le, deterministic=True )
 	network_class = build_mlp_output(out_le)
 	network_seg = build_cnn_output(out_le)
 
@@ -506,66 +507,68 @@ def main():
 			best_nbsample = 0
 			params_recon_best = lasagne.layers.get_all_param_values(network_recon)
 # 			if not args.no_ul:
-			for e_ns in range(num_epochs):
+			if not len(y_train_ns) ==0:
+				for e_ns in range(num_epochs):
+						
+					train_recon_mse = 0
+					train_batches = 0
+					val_recon_mse = 0
+					val_batches = 0
+					start_time = time.time()
+						
+					### shuffle indices of train/valid data
+						
+					ind_train_ns = np.arange( len(y_train_ns) )
+					np.random.shuffle( ind_train_ns )
+					X_train_ns = X_train_ns[ ind_train_ns ]
+					y_train_ns = y_train_ns[ ind_train_ns ]
+					Y_train_ns = Y_train_ns[ ind_train_ns ]
 					
-				train_recon_mse = 0
-				train_batches = 0
-				val_recon_mse = 0
-				val_batches = 0
-				start_time = time.time()
+					#### batch TRAIN ENCODER ####
+					for batch in iterate_minibatches(X_train_ns, X_train_ns, y_train_ns, Y_train_ns, size_minibatch, shuffle=True):
+						inputs, targets, classes, segmentations = batch
+						train_recon_mse += train_fn_recon( inputs, targets )
+						train_batches += 1
 					
-				### shuffle indices of train/valid data
-					
-				ind_train_ns = np.arange( len(y_train_ns) )
-				np.random.shuffle( ind_train_ns )
-				X_train_ns = X_train_ns[ ind_train_ns ]
-				y_train_ns = y_train_ns[ ind_train_ns ]
-				Y_train_ns = Y_train_ns[ ind_train_ns ]
-				
-				#### batch TRAIN ENCODER ####
-				for batch in iterate_minibatches(X_train_ns, X_train_ns, y_train_ns, Y_train_ns, size_minibatch, shuffle=True):
-					inputs, targets, classes, segmentations = batch
-					train_recon_mse += train_fn_recon( inputs, targets )
-					train_batches += 1
-				
-				MseReconTrain = 0
-				if train_batches != 0: 
-					MseReconTrain = (train_recon_mse / train_batches)
+					MseReconTrain = 0
+					if train_batches != 0: 
+						MseReconTrain = (train_recon_mse / train_batches)
 
-# 					#### batch VALID ENCODER ####
-				for batch in iterate_minibatches(X_valid_ns, X_valid_ns, y_valid_ns, Y_valid_ns, size_minibatch, shuffle=True):
-					inputs, targets, classes, segmentations = batch
-					val_recon_mse += eval_recon(inputs, targets)
-					val_batches += 1
-				
-				MseReconVal = 0
-				if val_batches != 0: 
-					MseReconVal = (val_recon_mse / val_batches)
-				t = time.time() - overall_time
-				hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
-				print("-----UnSupervised-----")
-				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
-				print("")	
-				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
-				print("\t training recons MSE:\t{:.6f} ".format( MseReconTrain ) )
-				print("\t validation recons MSE:\t{:.6f}".format( MseReconVal ) )
-				print("")
-				
-				TensorMseTrain_recon[m][n][e_ns] = MseReconTrain
-				TensorMseValid_recon[m][n][e_ns] = MseReconVal
+	# 					#### batch VALID ENCODER ####
+					for batch in iterate_minibatches(X_valid_ns, X_valid_ns, y_valid_ns, Y_valid_ns, size_minibatch, shuffle=True):
+						inputs, targets, classes, segmentations = batch
+						val_recon_mse += eval_recon(inputs, targets)
+						val_batches += 1
 					
-				if MseReconVal < MseReconVal_lowest:
-					MseReconVal_lowest = MseReconVal
-					OptMseTrain_recon[m][n] = MseReconTrain
-					OptMseValid_recon[m][n] = MseReconVal
-					OptNbSample_recon[m][n] = e_ns * len(X_train_ns)
-					OptNbEpoch_recon[m][n] = e_ns
-					params_recon_best = lasagne.layers.get_all_param_values(network_recon)
-					# params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+					MseReconVal = 0
+					if val_batches != 0: 
+						MseReconVal = (val_recon_mse / val_batches)
+					t = time.time() - overall_time
+					hours, minutes, seconds = t//3600, (t - 3600*(t//3600))//60, (t - 3600*(t//3600)) - (60*((t - 3600*(t//3600))//60))
+					print("-----UnSupervised-----")
+					print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
+					print("")	
+					print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+					print("\t training recons MSE:\t{:.6f} ".format( MseReconTrain ) )
+					print("\t validation recons MSE:\t{:.6f}".format( MseReconVal ) )
+					print("")
 					
-				# lasagne.layers.set_all_param_values( network_enc, params_init_network_enc )
-# 				# lasagne.layers.set_all_param_values( network_class, params_init_network_class )
-# # 				lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
+					TensorMseTrain_recon[m][n][e_ns] = MseReconTrain
+					TensorMseValid_recon[m][n][e_ns] = MseReconVal
+						
+					if MseReconVal < MseReconVal_lowest:
+						MseReconVal_lowest = MseReconVal
+						OptMseTrain_recon[m][n] = MseReconTrain
+						OptMseValid_recon[m][n] = MseReconVal
+						OptNbSample_recon[m][n] = e_ns * len(X_train_ns)
+						OptNbEpoch_recon[m][n] = e_ns
+						params_recon_best = lasagne.layers.get_all_param_values(network_recon)
+						# params_nn_s_best = lasagne.layers.get_all_param_values(network_class)
+						
+					# lasagne.layers.set_all_param_values( network_enc, params_init_network_enc )
+	# 				# lasagne.layers.set_all_param_values( network_class, params_init_network_class )
+	# # 				lasagne.layers.set_all_param_values( network_enc, params_nn_ns_best )
+				lasagne.layers.set_all_param_values( network_recon, params_recon_best )
 
 			AccCNNTrain_highest = sys.float_info.min
 			AccCNNVal_highest = sys.float_info.min
@@ -575,7 +578,6 @@ def main():
 			AccClassVal_highest = sys.float_info.min
 			best_nbsample = 0
 			
-			lasagne.layers.set_all_param_values( network_recon, params_recon_best )
 			
 			
 # 			# lasagne.layers.set_all_param_values( network_class, params_init_network_class )
@@ -614,6 +616,9 @@ def main():
 					inputs, targets, classes, segmentations = batch
 					le = eval_le( inputs )
 					train_class_ace += train_fn_class( le, classes )
+# 					paramsle = lasagne.layers.get_all_param_values(network_le)
+# 					paramsclass = lasagne.layers.get_all_param_values(network_class)
+# 					print("#########", np.sum(paramsle[0].reshape([1,-1])), np.sum(paramsclass[0].reshape([1,-1])) )
 					train_mlp_ace += train_fn_mlp( inputs, classes )
 					train_cnn_ace += train_fn_cnn( inputs, classes )
 					train_batches += 1
@@ -630,13 +635,13 @@ def main():
 				for batch in iterate_minibatches(X_valid_s, X_valid_s, y_valid_s, Y_valid_s, size_minibatch, shuffle=True):
 					inputs, targets, classes, segmentations = batch
 					le = eval_le( inputs )
-					ace, acc = eval_cnn( inputs, classes)
+					ace, acc = eval_cnn( inputs, classes )
 					val_cnn_ace += ace
 					val_cnn_acc += acc
-					ace, acc = eval_mlp( inputs, classes)
+					ace, acc = eval_mlp( inputs, classes )
 					val_mlp_ace += ace
 					val_mlp_acc += acc
-					ace, acc = eval_class( le, classes)
+					ace, acc = eval_class( le, classes )
 					val_class_ace += ace
 					val_class_acc += acc
 					val_batches += 1
