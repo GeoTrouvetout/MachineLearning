@@ -625,7 +625,6 @@ def main():
 					AceClassTrain = (train_class_ace / train_batches)
 					AceMLPTrain = (train_mlp_ace / train_batches)
 					AceCNNTrain = (train_cnn_ace / train_batches)
-				print("#######")
 
 				#### batch VALID CLASSIFIER ####
 				for batch in iterate_minibatches(X_valid_s, X_valid_s, y_valid_s, Y_valid_s, size_minibatch, shuffle=True):
@@ -662,7 +661,7 @@ def main():
 				print("-----Supervised-----")
 				print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
 				print("")	
-				print("Epoch: ", e_ns + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
+				print("Epoch: ", e_s + 1, "/", num_epochs, "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - start_time), "\ts: %d" %(prop_train_s), "%")
 				print("\t training class ACE:\t\t{:.6f} ".format( AceClassTrain ) )
 				print("\t validation class ACE:\t\t{:.6f} ".format( AceClassVal ) )
 # 				print("\t validation class ACC:\t{:.6f}".format( AccClassVal ) )
@@ -778,16 +777,17 @@ def main():
 # 			ArrayAccTest[m][n] = AccTest
 # 			ArrayAceTest[m][n] = AceTest
 # 			ArrayMseTest[m][n] = MseTest
-			print("#### TEST RESULTS #####")
+			print("################ TEST RESULTS ##################")
 			print("Total Time :", "\t%dh%dm%ds" %(hours,minutes,seconds) )
 			print("")	
-			print("Test Results | supervision rate ", prop_train_s, "% | experiment ", n, "/", len(seqn) )
+			print("Test Results |", "\tn: %d/%d" % (n+1,len(seqn)), "\tt: {:.3f}s".format( time.time() - training_time), "\ts: %d" %(prop_train_s), "%")
+# 			print("Test Results | supervision rate ", prop_train_s, "% | experiment ", n, "/", len(seqn) )
 			print("\t test recons MSE:\t\t{:.6f}".format( MseReconTest) )
 			print("\t test class ACE:\t\t{:.6f}".format( AceClassTest) )
 			print("\t test class ACC:\t\t{:.2f} %".format( 100*(AccClassTest) ) )
 			print("\t test MLP ACC:\t\t\t{:.2f} %".format( 100*(AccMLPTest) ) )
 			print("\t test CNN ACC:\t\t\t{:.2f} %".format( 100*(AccCNNTest) ) )
-			print("#######################")
+			print("################################################")
 			print("")	
 
 			np.savez(args.outnpz, 
