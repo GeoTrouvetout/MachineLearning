@@ -132,14 +132,14 @@ def build_mlp(input_var=None):
 
 def build_lcnn(input_var=None):
 	l_in = lasagne.layers.InputLayer(shape=(None, 1, 28, 28), input_var=input_var)
-	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.GlorotUniform() )
+	l_conv1 = lasagne.layers.Conv2DLayer(l_in, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify, W=lasagne.init.Constant(1) )
 	l_conv1.params[l_conv1.W].remove("trainable")
 	l_conv1.params[l_conv1.b].remove("trainable")
 	l_pool1 = lasagne.layers.MaxPool2DLayer(l_conv1, pool_size=(2,2) )
-	l_conv2 = lasagne.layers.Conv2DLayer(l_pool1, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	l_conv2 = lasagne.layers.Conv2DLayer(l_pool1, num_filters=32, filter_size=(5,5), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.Constant(1))
 	l_conv2.params[l_conv2.W].remove("trainable")
 	l_conv2.params[l_conv2.b].remove("trainable")
-	l_le = lasagne.layers.Conv2DLayer(l_conv2, num_filters=16, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.GlorotUniform())
+	l_le = lasagne.layers.Conv2DLayer(l_conv2, num_filters=16, filter_size=(1,1), nonlinearity=lasagne.nonlinearities.rectify , W=lasagne.init.Constant(1))
 	l_le.params[l_le.W].remove("trainable")
 	l_le.params[l_le.b].remove("trainable")
 	l_out = lasagne.layers.DenseLayer(l_le, num_units=10, nonlinearity=lasagne.nonlinearities.softmax, W=lasagne.init.GlorotUniform())
