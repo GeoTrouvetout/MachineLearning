@@ -343,8 +343,6 @@ def main():
 	X_testup = np.append( X_test, np.zeros( ( 2*len(X_test), 1, 28,28 ) ).astype(int), axis=0 )
 	y_testup = np.append( y_test, np.zeros( ( 2*len(y_test) ) ).astype(int), axis=0 )
 	
-	y_trainup = np.repeat( y_trainup, 10*10 )
-	y_testup = np.repeat( y_testup, 10*10 )
 	
 	indices = np.arange( len(X_trainup) )
 	
@@ -360,6 +358,16 @@ def main():
 	X_testup = np.swapaxes(X_testup, 2,3)
 	X_testup = X_testup.reshape( -1 , 1, 280, 280 )
 	X_testup = np.swapaxes(X_testup, 2,3)
+	
+	y_trainup = y_trainup[indices]
+	y_trainup = np.repeat( y_trainup, 10*10 )
+	y_trainup = y_trainup.reshape( -1 , 1, 1, 1 )
+	y_trainup = y_trainup.reshape( -1 , 1, 28, 28 )
+# 	y_trainup = np.swapaxes(y_trainup, 2,3)
+# 	y_trainup = y_trainup.reshape( -1 , 1, 280, 280 )
+# 	y_trainup = np.swapaxes(y_trainup, 2,3)
+	
+# 	y_testup = np.repeat( y_testup, 10*10 )
 	
 	print( y_trainup.shape )
 	print( X_trainup.shape )
