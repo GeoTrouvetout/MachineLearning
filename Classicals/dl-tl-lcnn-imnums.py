@@ -505,6 +505,7 @@ def main():
 	X_testup = X_testup.reshape( -1 , 1, 28*m, 28*m )
 	X_testup = np.swapaxes(X_testup, 2,3)
 	
+<<<<<<< HEAD
 	Y_testup = Y_testup/10
 	Y_testup = Y_testup[indicesTest]
 	Y_testup = Y_testup.reshape( -1 , 1, m, m )
@@ -514,6 +515,19 @@ def main():
 	Y_testup = np.swapaxes(Y_testup, 2,3)
 # 	Y_testup = np.repeat( Y_testup, 10*10 )
 	
+=======
+	y_trainup = y_trainup[indices]
+	y_trainup = np.repeat( y_trainup, 10*10 )
+	y_trainup = y_trainup.reshape( -1 , 1, 1, 1 )
+	y_trainup = y_trainup.reshape( -1 , 1, 28, 28 )
+# 	y_trainup = np.swapaxes(y_trainup, 2,3)
+# 	y_trainup = y_trainup.reshape( -1 , 1, 280, 280 )
+# 	y_trainup = np.swapaxes(y_trainup, 2,3)
+	
+# 	y_testup = np.repeat( y_testup, 10*10 )
+	
+	print( y_trainup.shape )
+>>>>>>> 5e8c67d1602e8c7e77086650234d85a0694959d6
 	print( X_trainup.shape )
 	print( Y_trainup.shape )
 	print( X_testup.shape )
